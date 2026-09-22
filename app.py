@@ -53,17 +53,28 @@ class VercelPathFix:
 
     def __call__(self, environ, start_response):
         path = environ.get('PATH_INFO', '')
+
+        # 1. Strip all possible serverless function prefixes (e.g. from destination: /api/index.py/$1)
         for prefix in ['/api/index.py', '/api/index', '/api']:
             if path == prefix or path == prefix + '/':
-                environ['PATH_INFO'] = '/'
+                path = '/'
                 break
             elif path.startswith(prefix + '/'):
-                environ['PATH_INFO'] = path[len(prefix):]
+                path = path[len(prefix):]
                 break
 
-        if not environ.get('PATH_INFO'):
-            environ['PATH_INFO'] = '/'
+        # 2. If after stripping, path is empty or '/', check if HTTP_X_MATCHED_PATH has the subpath
+        if path == '/' or not path:
+            matched = environ.get('HTTP_X_MATCHED_PATH', '')
+            if matched:
+                clean = matched.split('?')[0]
+                if clean and not clean.startswith('/api'):
+                    path = clean
 
+        if not path:
+            path = '/'
+
+        environ['PATH_INFO'] = path
         return self.wsgi_app(environ, start_response)
 
 app.wsgi_app = VercelPathFix(app.wsgi_app)
@@ -344,9 +355,17 @@ def handle_server_error(e):
 
 @app.errorhandler(404)
 def handle_not_found(e):
-    if 'user_id' not in session:
-        return render_template('login.html'), 200
-    return redirect(url_for('dashboard'))
+    return """<!DOCTYPE html>
+<html>
+<head><title>404 Not Found</title>
+<style>body{font-family:Segoe UI,sans-serif;padding:40px;background:#0f172a;color:#f8fafc;text-align:center;}h2{color:#f59e0b;}a{color:#10b981;text-decoration:none;font-weight:600;}</style>
+</head>
+<body>
+  <h2>404 - Page Not Found</h2>
+  <p>The page you requested does not exist or has been moved.</p>
+  <p><a href="/login">&larr; Return to Login</a></p>
+</body>
+</html>""", 404
 
 def login_required(f):
     @wraps(f)
@@ -936,16 +955,11 @@ def logout():
     flash('You have been logged out.', 'success')
     return redirect(url_for('login'))
 
-@app.route('/', methods=['GET', 'POST'])
-@app.route('/api', methods=['GET', 'POST'])
-@app.route('/api/index', methods=['GET', 'POST'])
-@app.route('/api/index.py', methods=['GET', 'POST'])
+@app.route('/')
 def home():
-    if request.method == 'POST':
-        return login()
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
-    return render_template('login.html')
+    return redirect(url_for('login'))
 
 @app.route('/dashboard')
 @login_required
@@ -1430,7 +1444,11 @@ def mock_test_take(mock_id):
         
     questions = json.loads(mock['test_data'])
     
-    started_at = datetime.datetime.strptime(mock['started_at'][:19], "%Y-%m-%d %H:%M:%S")
+    raw_started = mock['started_at']
+    if isinstance(raw_started, datetime.datetime):
+        started_at = raw_started
+    else:
+        started_at = datetime.datetime.strptime(str(raw_started)[:19], "%Y-%m-%d %H:%M:%S")
     elapsed = (datetime.datetime.now() - started_at).total_seconds()
     time_left = max(0, (mock['duration_mins'] * 60) - int(elapsed))
     
@@ -1556,7 +1574,7 @@ def teacher_dashboard():
             top_sc = round(t['top_score'], 1) if t['top_score'] is not None else 0
             pass_c = t['passed_candidates'] or 0
             pass_rt = round((pass_c / t['total_candidates'] * 100), 1) if t['total_candidates'] else 0
-            created_str = t['created_at'][:16] if t['created_at'] else 'N/A'
+            created_str = str(t['created_at'])[:16] if t['created_at'] else 'N/A'
 
             item = {
                 'id': t['test_code'],
@@ -1785,7 +1803,10 @@ def api_teacher_live_monitor(test_id):
             is_online = False
             if row['last_heartbeat']:
                 try:
-                    hb_time = datetime.datetime.strptime(row['last_heartbeat'][:19], "%Y-%m-%d %H:%M:%S")
+                    if isinstance(row['last_heartbeat'], datetime.datetime):
+                        hb_time = row['last_heartbeat']
+                    else:
+                        hb_time = datetime.datetime.strptime(str(row['last_heartbeat'])[:19], "%Y-%m-%d %H:%M:%S")
                     if (now - hb_time).total_seconds() < 40:
                         is_online = True
                 except Exception:
@@ -1801,7 +1822,7 @@ def api_teacher_live_monitor(test_id):
                 'progress_percent': progress_pct,
                 'violations': row['violations'] or 0,
                 'time_spent': row['time_spent'] or 0,
-                'completed_at': (row['completed_at'][:19] if row['completed_at'] else ''),
+                'completed_at': (str(row['completed_at'])[:19] if row['completed_at'] else ''),
                 'is_online': is_online if row['status'] == 'in_progress' else False,
                 'score': row['score'],
                 'max_score': row['max_score'] or test['total_marks']
