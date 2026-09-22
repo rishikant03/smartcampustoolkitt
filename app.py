@@ -358,6 +358,12 @@ def handle_server_error(e):
 </body>
 </html>""", 500
 
+@app.errorhandler(404)
+def handle_not_found(e):
+    if 'user_id' not in session:
+        return render_template('login.html'), 200
+    return redirect(url_for('dashboard'))
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -398,6 +404,8 @@ def record_login(user_id, method):
         conn.execute('UPDATE user_profiles SET last_login_time = CURRENT_TIMESTAMP WHERE user_id = ?', (user_id,))
 
 @app.route('/login', methods=['GET', 'POST'])
+@app.route('/api/login', methods=['GET', 'POST'])
+@app.route('/api/index.py/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -429,6 +437,8 @@ def login():
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
+@app.route('/api/register', methods=['GET', 'POST'])
+@app.route('/api/index.py/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         full_name = (request.form.get('name') or request.form.get('full_name') or '').strip()
@@ -947,6 +957,9 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/')
+@app.route('/api')
+@app.route('/api/index')
+@app.route('/api/index.py')
 def home():
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
