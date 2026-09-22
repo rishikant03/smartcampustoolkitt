@@ -29,7 +29,15 @@ import csv
 
 load_dotenv()
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
+STATIC_DIR = os.path.join(BASE_DIR, 'static')
+
+app = Flask(
+    __name__,
+    template_folder=TEMPLATE_DIR,
+    static_folder=STATIC_DIR
+)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "super_secret_dev_key")
 
 IS_VERCEL = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
@@ -37,7 +45,7 @@ if IS_VERCEL:
     UPLOAD_FOLDER = "/tmp/uploads"
     GENERATED_FOLDER = "/tmp/generated"
     DB_PATH = "/tmp/papers.db"
-    seed_db = os.path.join(os.path.dirname(__file__), 'papers.db')
+    seed_db = os.path.join(BASE_DIR, 'papers.db')
     if os.path.exists(seed_db) and not os.path.exists(DB_PATH):
         import shutil
         try:
@@ -45,9 +53,9 @@ if IS_VERCEL:
         except Exception:
             pass
 else:
-    UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
-    GENERATED_FOLDER = os.path.join(os.path.dirname(__file__), 'generated')
-    DB_PATH = os.path.join(os.path.dirname(__file__), 'papers.db')
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+    GENERATED_FOLDER = os.path.join(BASE_DIR, 'generated')
+    DB_PATH = os.path.join(BASE_DIR, 'papers.db')
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max
@@ -308,7 +316,44 @@ def init_db():
             conn.execute("ALTER TABLE users ADD COLUMN otp_last_sent TIMESTAMP")
         if 'created_at' not in existing_cols:
             conn.execute("ALTER TABLE users ADD COLUMN created_at TIMESTAMP")
+            
+        # Seed default accounts on cold start if table is empty
+        try:
+            user_count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+            if user_count == 0:
+                demo_student_hash = generate_password_hash("Student@123")
+                conn.execute(
+                    "INSERT INTO users (username, password_hash, email, name, role, email_verified, is_verified) VALUES (?, ?, ?, ?, ?, 1, 1)",
+                    ("student", demo_student_hash, "student@smartcampus.edu", "Demo Student", "student")
+                )
+                demo_teacher_hash = generate_password_hash("Teacher@123")
+                conn.execute(
+                    "INSERT INTO users (username, password_hash, email, name, role, email_verified, is_verified) VALUES (?, ?, ?, ?, ?, 1, 1)",
+                    ("teacher", demo_teacher_hash, "teacher@smartcampus.edu", "Prof. Sharma", "teacher")
+                )
+        except Exception:
+            pass
+
 init_db()
+
+@app.errorhandler(500)
+@app.errorhandler(Exception)
+def handle_server_error(e):
+    import traceback
+    error_trace = traceback.format_exc()
+    print(f"[500 Error] {e}\n{error_trace}")
+    return f"""<!DOCTYPE html>
+<html>
+<head><title>500 Internal Server Error</title>
+<style>body{{font-family:Segoe UI,sans-serif;padding:30px;background:#0f172a;color:#f8fafc;line-height:1.6;}}h2{{color:#ef4444;}}pre{{background:#1e293b;padding:16px;border-radius:8px;overflow:auto;color:#cbd5e1;font-size:13px;border:1px solid #334155;}}a{{color:#38bdf8;text-decoration:none;}}</style>
+</head>
+<body>
+  <h2>⚠️ Application Error (500)</h2>
+  <p><strong>Error:</strong> {str(e)}</p>
+  <pre>{error_trace}</pre>
+  <p><a href="/login">← Return to Login</a></p>
+</body>
+</html>""", 500
 
 def login_required(f):
     @wraps(f)
