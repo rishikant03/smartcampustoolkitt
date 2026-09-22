@@ -32,9 +32,22 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "super_secret_dev_key")
 
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
-GENERATED_FOLDER = os.path.join(os.path.dirname(__file__), 'generated')
-DB_PATH = os.path.join(os.path.dirname(__file__), 'papers.db')
+IS_VERCEL = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+if IS_VERCEL:
+    UPLOAD_FOLDER = "/tmp/uploads"
+    GENERATED_FOLDER = "/tmp/generated"
+    DB_PATH = "/tmp/papers.db"
+    seed_db = os.path.join(os.path.dirname(__file__), 'papers.db')
+    if os.path.exists(seed_db) and not os.path.exists(DB_PATH):
+        import shutil
+        try:
+            shutil.copy2(seed_db, DB_PATH)
+        except Exception:
+            pass
+else:
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
+    GENERATED_FOLDER = os.path.join(os.path.dirname(__file__), 'generated')
+    DB_PATH = os.path.join(os.path.dirname(__file__), 'papers.db')
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max
