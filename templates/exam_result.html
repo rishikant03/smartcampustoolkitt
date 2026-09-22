@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Official Scorecard - {{ test.title }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-surface: #ffffff;
+            --bg-surface-elevated: #f8fafc;
+            --border-color: #000000;
+            --primary: #10b981;
+            --success: #10b981;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --text-main: #000000;
+            --text-muted: #52525b;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg-primary);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            height: 70px;
+            background: #ffffff;
+            border-bottom: 2px solid #000000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+        }
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .logo-box {
+            width: 40px;
+            height: 40px;
+            background: #10b981;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 1.2rem;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.35);
+        }
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .btn-nav {
+            padding: 9px 18px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        .btn-nav-outline {
+            background: #ffffff;
+            border: 1.5px solid #000000;
+            color: #000000;
+        }
+        .btn-nav-outline:hover {
+            background: #000000;
+            color: #ffffff;
+        }
+        .btn-nav-primary {
+            background: #10b981;
+            color: #ffffff;
+            border: none;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+            font-weight: 700;
+        }
+        .btn-nav-primary:hover {
+            background: #059669;
+        }
+
+        .content-container {
+            max-width: 1060px;
+            margin: 40px auto;
+            padding: 0 20px 80px 20px;
+        }
+
+        /* Hero Scorecard */
+        .score-hero-card {
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 20px;
+            padding: 36px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 36px;
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+            color: #000000;
+        }
+        .score-hero-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: #10b981;
+        }
+
+        /* Left Gauge */
+        .gauge-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border-right: 1.5px solid #e2e8f0;
+            padding-right: 20px;
+        }
+        .score-circle {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: conic-gradient(
+                {% if attempt.percentage >= 50 %}#10b981{% else %}#dc2626{% endif %} calc({{ attempt.percentage }}% * 3.6),
+                #e2e8f0 0deg
+            );
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        .score-circle-inner {
+            width: 130px;
+            height: 130px;
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .score-val {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #000000;
+            line-height: 1;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .score-denom {
+            font-size: 0.85rem;
+            color: #52525b;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+        .status-badge {
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .status-badge.pass {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
+        .status-badge.fail {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        /* Right Details */
+        .details-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .exam-info-header {
+            margin-bottom: 20px;
+        }
+        .exam-title-text {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin: 0 0 8px 0;
+            color: #000000;
+        }
+        .meta-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.85rem;
+            color: #000000;
+        }
+        .meta-pill {
+            background: #f8fafc;
+            border: 1.5px solid #000000;
+            padding: 5px 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+
+        .stats-matrix {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-top: 16px;
+        }
+        .stat-box {
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+        }
+        .stat-box-num {
+            font-size: 1.6rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            color: #000000;
+            margin-bottom: 4px;
+        }
+        .stat-box-lbl {
+            font-size: 0.75rem;
+            color: #52525b;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-weight: 700;
+        }
+
+        /* Question Filter Nav */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #000000;
+            padding-bottom: 16px;
+        }
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+        }
+        .filter-btn {
+            background: #ffffff;
+            border: 1.5px solid #000000;
+            color: #000000;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .filter-btn.active {
+            background: #10b981;
+            color: #ffffff;
+            border-color: #10b981;
+            font-weight: 700;
+        }
+
+        /* Review Cards */
+        .q-review-card {
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 18px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+            color: #000000;
+            transition: all 0.2s ease;
+        }
+        .q-review-card.correct-card {
+            border-left: 6px solid #10b981;
+        }
+        .q-review-card.incorrect-card {
+            border-left: 6px solid #dc2626;
+        }
+        .q-review-card.skipped-card {
+            border-left: 6px solid #71717a;
+        }
+
+        .q-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+        .q-badge-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .q-num-tag {
+            font-weight: 800;
+            font-size: 0.95rem;
+            color: #000000;
+        }
+        .q-topic-tag {
+            font-size: 0.78rem;
+            background: #f8fafc;
+            border: 1px solid #000000;
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: #000000;
+            font-weight: 600;
+        }
+        .result-mark-pill {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+        .result-mark-pill.correct { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+        .result-mark-pill.incorrect { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .result-mark-pill.skipped { background: #f4f4f5; color: #71717a; border: 1px solid #d4d4d8; }
+
+        .q-statement {
+            font-size: 1.05rem;
+            color: #000000;
+            font-weight: 600;
+            line-height: 1.6;
+            margin-bottom: 18px;
+        }
+
+        .answers-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            background: #f8fafc;
+            border: 1.5px solid #000000;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 14px;
+            color: #000000;
+        }
+        .ans-block-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #52525b;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700;
+        }
+        .ans-block-val {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #000000;
+        }
+
+        .explanation-box {
+            background: #f0fdf4;
+            border: 1.5px dashed #10b981;
+            border-radius: 10px;
+            padding: 14px 18px;
+            font-size: 0.88rem;
+            color: #065f46;
+            line-height: 1.5;
+        }
+
+        @media print {
+            .navbar, .filter-bar, .btn-nav { display: none !important; }
+            body { background: white !important; color: black !important; }
+            .score-hero-card, .q-review-card { border: 1px solid #000 !important; box-shadow: none !important; background: white !important; color: black !important; }
+            .score-circle-inner { background: white !important; }
+            .score-val { color: black !important; }
+        }
+    </style>
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Header -->
+    <nav class="navbar">
+        <div class="nav-left">
+            <div class="logo-box">
+                <i class="fas fa-award"></i>
+            </div>
+            <div>
+                <h2 style="margin: 0; font-size: 1.15rem; color: #fff;">Official Examination Scorecard</h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Antigravity AI Assessment Engine</div>
+            </div>
+        </div>
+        <div class="nav-actions">
+            <button onclick="window.print()" class="btn-nav btn-nav-outline">
+                <i class="fas fa-print"></i> Print Scorecard
+            </button>
+            <a href="{{ url_for('student_dashboard') }}" class="btn-nav btn-nav-primary">
+                <i class="fas fa-arrow-left"></i> Student Dashboard
+            </a>
+        </div>
+    </nav>
+
+    <div class="content-container">
+        <!-- Hero Scorecard -->
+        <div class="score-hero-card">
+            <!-- Circular Gauge -->
+            <div class="gauge-section">
+                <div class="score-circle">
+                    <div class="score-circle-inner">
+                        <div class="score-val">{{ attempt.score }}</div>
+                        <div class="score-denom">/ {{ attempt.max_score }} Marks</div>
+                    </div>
+                </div>
+                <div class="status-badge {% if attempt.percentage >= 50 %}pass{% else %}fail{% endif %}">
+                    {% if attempt.percentage >= 50 %}Passed ({{ attempt.percentage }}%){% else %}Failed ({{ attempt.percentage }}%){% endif %}
+                </div>
+            </div>
+
+            <!-- Exam Details & Matrix -->
+            <div class="details-section">
+                <div class="exam-info-header">
+                    <h1 class="exam-title-text">{{ test.title }}</h1>
+                    <div class="meta-pills">
+                        <div class="meta-pill"><i class="fas fa-id-badge"></i> Candidate: <strong>{{ student.username }}</strong></div>
+                        <div class="meta-pill"><i class="fas fa-barcode"></i> Code: <strong>{{ test.test_code }}</strong></div>
+                        <div class="meta-pill"><i class="far fa-clock"></i> Time: <strong>{{ (attempt.time_spent // 60) }}m {{ (attempt.time_spent % 60) }}s</strong></div>
+                        <div class="meta-pill"><i class="fas fa-calendar-alt"></i> Date: <strong>{{ attempt.completed_at[:16] if attempt.completed_at else 'Recent' }}</strong></div>
+                        {% if attempt.violations and attempt.violations > 0 %}
+                        <div class="meta-pill" style="color: #ffffff; border-color: rgba(255, 255, 255, 0.3);">
+                            <i class="fas fa-exclamation-triangle"></i> Violations: <strong>{{ attempt.violations }}</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="stats-matrix">
+                    <div class="stat-box">
+                        <div class="stat-box-num" style="color: #818cf8;">{{ attempt.questions_data|length }}</div>
+                        <div class="stat-box-lbl">Questions</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-box-num" style="color: #34d399;">{{ grading_summary.correct_count }}</div>
+                        <div class="stat-box-lbl">Correct</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-box-num" style="color: #f87171;">{{ grading_summary.incorrect_count }}</div>
+                        <div class="stat-box-lbl">Incorrect</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-box-num" style="color: #38bdf8;">{{ attempt.percentage }}%</div>
+                        <div class="stat-box-lbl">Accuracy</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question Review Filter -->
+        <div class="filter-bar">
+            <div class="filter-tabs">
+                <button class="filter-btn active" onclick="filterQuestions('all', this)">All ({{ review_items|length }})</button>
+                <button class="filter-btn" onclick="filterQuestions('correct', this)">Correct ({{ grading_summary.correct_count }})</button>
+                <button class="filter-btn" onclick="filterQuestions('incorrect', this)">Incorrect ({{ grading_summary.incorrect_count }})</button>
+                <button class="filter-btn" onclick="filterQuestions('skipped', this)">Skipped ({{ grading_summary.skipped_count }})</button>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+                Negative Marking Deductions: <strong style="color: #f87171;">-{{ grading_summary.negative_marks_deducted }}</strong>
+            </div>
+        </div>
+
+        <!-- Question Cards Loop -->
+        <div id="questionsContainer">
+            {% for item in review_items %}
+            <div class="q-review-card {% if item.status == 'correct' %}correct-card{% elif item.status == 'incorrect' %}incorrect-card{% else %}skipped-card{% endif %}" data-status="{{ item.status }}">
+                <div class="q-card-header">
+                    <div class="q-badge-row">
+                        <span class="q-num-tag">Q{{ loop.index }}.</span>
+                        {% if item.question.topic %}
+                        <span class="q-topic-tag">{{ item.question.topic }}</span>
+                        {% endif %}
+                        <span class="q-topic-tag" style="text-transform: capitalize;">{{ item.question.type or 'MCQ' }}</span>
+                    </div>
+                    <div>
+                        {% if item.status == 'correct' %}
+                        <span class="result-mark-pill correct"><i class="fas fa-check"></i> +{{ item.marks_awarded }} Marks</span>
+                        {% elif item.status == 'incorrect' %}
+                        <span class="result-mark-pill incorrect"><i class="fas fa-times"></i> {{ item.marks_awarded }} Marks</span>
+                        {% else %}
+                        <span class="result-mark-pill skipped"><i class="fas fa-minus"></i> 0 Marks (Skipped)</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="q-statement">{{ item.question.question }}</div>
+
+                <!-- Answer Comparison -->
+                <div class="answers-comparison">
+                    <div>
+                        <div class="ans-block-label">
+                            <i class="fas fa-user"></i> Your Response
+                        </div>
+                        <div class="ans-block-val" style="color: {% if item.status == 'correct' %}#34d399{% elif item.status == 'incorrect' %}#f87171{% else %}var(--text-muted){% endif %};">
+                            {{ item.user_answer or '(Not Answered)' }}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="ans-block-label">
+                            <i class="fas fa-check-circle" style="color: #10b981;"></i> Correct Answer
+                        </div>
+                        <div class="ans-block-val" style="color: #34d399;">
+                            {{ item.correct_answer }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Explanation -->
+                {% if item.question.explanation %}
+                <div class="explanation-box">
+                    <strong style="color: #a5b4fc;"><i class="fas fa-lightbulb"></i> Solution & Explanation:</strong><br>
+                    {{ item.question.explanation }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        function filterQuestions(type, btnElem) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btnElem.classList.add('active');
+
+            const cards = document.querySelectorAll('.q-review-card');
+            cards.forEach(card => {
+                if (type === 'all' || card.getAttribute('data-status') === type) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Test Scorecard - AI Student Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        .result-container {
+            max-width: 850px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .score-card {
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 35px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 5px;
+            background: #10b981;
+        }
+
+        .score-circle {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid #000000;
+            background: #ffffff;
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.2);
+        }
+
+        .score-number {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: #10b981;
+            line-height: 1;
+        }
+
+        .score-total {
+            font-size: 0.9rem;
+            color: #4b5563;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 25px 0;
+        }
+
+        .stat-item {
+            background: #f8fafc;
+            border: 2px solid #000000;
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .stat-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .question-review-card {
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }
+
+        .review-status-correct {
+            border-left: 6px solid #10b981;
+        }
+
+        .review-status-incorrect {
+            border-left: 6px solid #ef4444;
+        }
+
+        .review-status-unanswered {
+            border-left: 6px solid #000000;
+        }
+
+        .opt-review {
+            padding: 10px 14px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .opt-correct {
+            background: #f0fdf4;
+            border: 1.5px solid #10b981;
+            color: #065f46;
+            font-weight: 700;
+        }
+
+        .opt-wrong {
+            background: #fef2f2;
+            border: 1.5px solid #ef4444;
+            color: #dc2626;
+            text-decoration: line-through;
+        }
+
+        .opt-neutral {
+            background: #f8fafc;
+            border: 1px solid #000000;
+            color: #1f2937;
+        }
+
+        .explanation-box {
+            background: #f8fafc;
+            border: 1px dashed #000000;
+            border-radius: 10px;
+            padding: 12px 15px;
+            margin-top: 15px;
+            font-size: 0.88rem;
+            color: #1f2937;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="nav-brand">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#10b981;"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+        <span>Smart Campus Toolkit</span>
+    </div>
+    <div class="nav-links">
+        <a href="{{ url_for('student_dashboard') }}" class="nav-link">Dashboard</a>
+        <a href="{{ url_for('mock_test_setup') }}" class="nav-link active">Mock Test</a>
+        <a href="{{ url_for('practice_setup') }}" class="nav-link">AI Practice</a>
+        <a href="{{ url_for('index') }}" class="nav-link">Question Papers</a>
+        <div class="nav-user">
+            <span>{{ session['username'] }}</span>
+            <a href="{{ url_for('logout') }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="result-container">
+    {% set percentage = ((mock.score / mock.total_questions) * 100)|round|int %}
+    
+    <div class="score-card">
+        <div class="score-circle">
+            <div class="score-number">{{ percentage }}%</div>
+            <div class="score-total">{{ mock.score }} / {{ mock.total_questions }} pts</div>
+        </div>
+
+        <h1 style="font-size: 1.8rem; margin-bottom: 6px; color: #000000; font-weight: 800;">
+            {% if percentage >= 80 %}
+                <span style="color: #10b981;"><i class="fas fa-trophy"></i> Outstanding Performance!</span>
+            {% elif percentage >= 50 %}
+                <span style="color: #000000;">Good Effort, Keep Practicing</span>
+            {% else %}
+                <span style="color: #ef4444;">Needs More Practice</span>
+            {% endif %}
+        </h1>
+        <p style="color: #4b5563; margin-bottom: 20px; font-weight: 600;">
+            Mock Test: <strong style="color: #000000;">{{ mock.subject }}</strong> ({{ mock.difficulty }} Level)
+        </p>
+
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-value" style="color: #10b981;">{{ mock.score }}</div>
+                <div style="font-size: 0.85rem; color: #000000; font-weight: 700; text-transform: uppercase;">Correct Answers</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #ef4444;">{{ wrong_count }}</div>
+                <div style="font-size: 0.85rem; color: #000000; font-weight: 700; text-transform: uppercase;">Incorrect Answers</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #000000;">{{ unans_count }}</div>
+                <div style="font-size: 0.85rem; color: #000000; font-weight: 700; text-transform: uppercase;">Skipped</div>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+            <a href="{{ url_for('mock_test_setup') }}" class="btn btn-primary" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800; padding: 12px 24px; text-decoration: none; border-radius: 10px;">Take Another Mock Test</a>
+            <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary" style="background: #ffffff; border: 2px solid #000000; color: #000000; font-weight: 800; padding: 12px 24px; text-decoration: none; border-radius: 10px;">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Detailed Question Review -->
+    <h2 style="font-size: 1.4rem; margin-bottom: 20px; color: #000000; font-weight: 800;">Question-by-Question Review</h2>
+
+    {% for item in review_items %}
+    <div class="question-review-card {% if item.is_correct %}review-status-correct{% elif item.user_answer %}review-status-incorrect{% else %}review-status-unanswered{% endif %}">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-weight: 800; color: #000000; font-size: 0.85rem;">Question {{ loop.index }}</span>
+            {% if item.is_correct %}
+                <span style="color: #10b981; font-weight: 800; font-size: 0.85rem; border: 1.5px solid #10b981; padding: 2px 8px; border-radius: 6px; background: #f0fdf4;">✓ Correct (+1 pt)</span>
+            {% elif item.user_answer %}
+                <span style="color: #ef4444; font-weight: 800; font-size: 0.85rem; border: 1.5px solid #ef4444; padding: 2px 8px; border-radius: 6px; background: #fef2f2;">✗ Incorrect (0 pt)</span>
+            {% else %}
+                <span style="color: #000000; font-weight: 800; font-size: 0.85rem; border: 1.5px solid #000000; padding: 2px 8px; border-radius: 6px; background: #f8fafc;">— Skipped</span>
+            {% endif %}
+        </div>
+
+        <div style="font-size: 1.1rem; font-weight: 700; margin-bottom: 18px; color: #000000;">
+            {{ item.question.question }}
+        </div>
+
+        <div class="options-review">
+            {% for opt in item.question.options %}
+                {% if opt == item.question.correct_answer %}
+                    <div class="opt-review opt-correct">
+                        <span>✓</span>
+                        <span>{{ opt }} (Correct Answer)</span>
+                    </div>
+                {% elif opt == item.user_answer and not item.is_correct %}
+                    <div class="opt-review opt-wrong">
+                        <span>✗</span>
+                        <span>{{ opt }} (Your Choice)</span>
+                    </div>
+                {% else %}
+                    <div class="opt-review opt-neutral">
+                        <span>•</span>
+                        <span>{{ opt }}</span>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        {% if item.question.explanation %}
+        <div class="explanation-box">
+            <strong style="color: #000000;">Explanation:</strong> {{ item.question.explanation }}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <div style="text-align: center; margin: 40px 0;">
+        <a href="{{ url_for('mock_test_setup') }}" class="btn btn-primary btn-large" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800; padding: 14px 30px; text-decoration: none; border-radius: 12px;">
+            Take Another Practice Test &rarr;
+        </a>
+    </div>
+</div>
+
+</body>
+</html>

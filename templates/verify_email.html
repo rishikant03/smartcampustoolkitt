@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email - Smart Campus Toolkit</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--background, #0b0f19);
+            color: #ffffff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .verify-wrapper {
+            width: 100%;
+            max-width: 480px;
+            margin: 30px auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .verify-card {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px 35px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            text-align: center;
+        }
+
+        .icon-badge {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, 0.15);
+            border: 2px solid #10b981;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #10b981;
+            margin-bottom: 22px;
+        }
+
+        .verify-title {
+            font-size: 1.85rem;
+            font-weight: 800;
+            margin: 0 0 8px 0;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+        }
+
+        .verify-subtitle {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            margin: 0 0 6px 0;
+            line-height: 1.5;
+        }
+
+        .email-display-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 6px 16px;
+            color: #34d399;
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 25px;
+            word-break: break-all;
+        }
+
+        .otp-input-field {
+            width: 100%;
+            font-size: 2.2rem;
+            letter-spacing: 12px;
+            text-align: center;
+            font-weight: 800;
+            padding: 16px 10px;
+            background: #020617;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 14px;
+            color: #ffffff;
+            outline: none;
+            box-sizing: border-box;
+            transition: all 0.25s ease;
+            font-family: monospace;
+        }
+
+        .otp-input-field:focus {
+            border-color: #10b981;
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25);
+            background: #000000;
+        }
+
+        .timer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 18px 0 25px 0;
+            font-size: 0.88rem;
+            color: #94a3b8;
+        }
+
+        .expiry-text {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+        }
+
+        .expiry-count {
+            color: #fbbf24;
+            font-weight: 700;
+            font-family: monospace;
+            font-size: 0.95rem;
+        }
+
+        .btn-verify {
+            width: 100%;
+            background: #10b981;
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+        }
+
+        .btn-verify:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-resend {
+            background: transparent;
+            border: none;
+            color: #10b981;
+            font-size: 0.92rem;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 8px 14px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            text-decoration: underline;
+        }
+
+        .btn-resend:hover:not(:disabled) {
+            color: #34d399;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .btn-resend:disabled {
+            color: #64748b;
+            cursor: not-allowed;
+            text-decoration: none;
+        }
+
+        .local-dev-box {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px dashed #10b981;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin: 20px 0;
+            text-align: left;
+            font-size: 0.86rem;
+            color: #e2e8f0;
+        }
+
+        .local-dev-box code {
+            background: #000000;
+            color: #34d399;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: 3px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="verify-wrapper">
+    <div class="verify-card">
+        
+        <!-- Icon -->
+        <div class="icon-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+                <polyline points="3 7 12 13 21 7"></polyline>
+            </svg>
+        </div>
+
+        <h1 class="verify-title">Verify Your Email</h1>
+        <p class="verify-subtitle">Enter the 6-digit OTP sent to your email address.</p>
+        <div class="email-display-badge">
+            {{ email }}
+        </div>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages" style="margin-bottom: 20px;">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}" style="text-align: left; font-size: 0.9rem;">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Dev Hint (Only active if SMTP is unconfigured for local testing) -->
+        {% if dev_otp %}
+            <div class="local-dev-box">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="font-weight: 700; color: #34d399;">🔑 Local Testing Mode:</span>
+                    <small style="color: #94a3b8;">(SMTP Not Configured)</small>
+                </div>
+                <div>Your 6-Digit OTP: <code>{{ dev_otp }}</code></div>
+                <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 6px;">
+                    To deliver real emails, set <code>SMTP_EMAIL</code> and <code>SMTP_PASSWORD</code> in <code>.env</code>.
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- OTP Input Form -->
+        <form action="{{ url_for('verify_email_page') }}" method="POST" id="otpForm">
+            <input type="hidden" name="email" value="{{ email }}">
+            
+            <div style="margin-bottom: 12px;">
+                <input 
+                    type="text" 
+                    id="otpInput" 
+                    name="otp" 
+                    class="otp-input-field" 
+                    placeholder="______" 
+                    required 
+                    autocomplete="one-time-code" 
+                    inputmode="numeric" 
+                    maxlength="6" 
+                    pattern="\d{6}" 
+                    autofocus
+                >
+            </div>
+
+            <!-- Timer / Expiry Info -->
+            <div class="timer-row">
+                <span class="expiry-text">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    Expires in: <span id="expiryCountdown" class="expiry-count">05:00</span>
+                </span>
+                <span id="expiryStatus" style="font-size: 0.82rem; color: #10b981; font-weight: 600;">Active</span>
+            </div>
+
+            <button type="submit" id="verifyBtn" class="btn-verify">
+                Verify OTP &rarr;
+            </button>
+        </form>
+
+        <!-- Resend OTP Section -->
+        <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+            <form action="{{ url_for('resend_otp') }}" method="POST" id="resendForm" style="margin: 0;">
+                <input type="hidden" name="email" value="{{ email }}">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
+                    <span style="color: #94a3b8; font-size: 0.9rem;">Didn't receive the code?</span>
+                    <button type="submit" id="resendBtn" class="btn-resend" {% if resend_cooldown > 0 %}disabled{% endif %}>
+                        Resend OTP {% if resend_cooldown > 0 %}(<span id="cooldownTimer">{{ "%02d:%02d" | format(resend_cooldown // 60, resend_cooldown % 60) }}</span>){% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div style="margin-top: 25px;">
+            <a href="{{ url_for('login') }}" style="color: #94a3b8; text-decoration: none; font-size: 0.88rem; transition: color 0.2s;">
+                &larr; Back to Sign In
+            </a>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Total expiry seconds from server
+    let expirySeconds = {{ remaining_seconds | default(300) }};
+    // Cooldown seconds from server
+    let cooldownSeconds = {{ resend_cooldown | default(0) }};
+
+    const expiryDisplay = document.getElementById('expiryCountdown');
+    const expiryStatus = document.getElementById('expiryStatus');
+    const resendBtn = document.getElementById('resendBtn');
+    const cooldownDisplay = document.getElementById('cooldownTimer');
+    const otpInput = document.getElementById('otpInput');
+    const verifyBtn = document.getElementById('verifyBtn');
+
+    function formatTime(sec) {
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    // Expiry countdown timer (5 minutes)
+    const expiryInterval = setInterval(() => {
+        if (expirySeconds > 0) {
+            expirySeconds--;
+            expiryDisplay.textContent = formatTime(expirySeconds);
+        } else {
+            clearInterval(expiryInterval);
+            expiryDisplay.textContent = "00:00";
+            expiryStatus.textContent = "Expired";
+            expiryStatus.style.color = "#ef4444";
+            otpInput.disabled = true;
+            verifyBtn.disabled = true;
+            verifyBtn.style.background = "#475569";
+            verifyBtn.style.cursor = "not-allowed";
+            verifyBtn.textContent = "OTP Expired - Request New OTP";
+        }
+    }, 1000);
+
+    // Initial display
+    expiryDisplay.textContent = formatTime(expirySeconds);
+
+    // Resend cooldown timer
+    if (cooldownSeconds > 0) {
+        const cooldownInterval = setInterval(() => {
+            cooldownSeconds--;
+            if (cooldownSeconds > 0) {
+                if (cooldownDisplay) {
+                    cooldownDisplay.textContent = formatTime(cooldownSeconds);
+                }
+            } else {
+                clearInterval(cooldownInterval);
+                resendBtn.disabled = false;
+                resendBtn.textContent = "Resend OTP";
+            }
+        }, 1000);
+    }
+
+    // Filter non-digits from OTP input
+    otpInput.addEventListener('input', function(e) {
+        this.value = this.value.replace(/\D/g, '').slice(0, 6);
+        if (this.value.length === 6) {
+            verifyBtn.focus();
+        }
+    });
+</script>
+
+</body>
+</html>

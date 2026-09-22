@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Question Paper Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="{{ url_for('dashboard') }}" class="nav-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#10b981;"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+            <span>Smart Campus Toolkit</span>
+        </a>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+            <a href="{{ url_for('index') }}" class="nav-link active">Question Papers</a>
+            {% if session.get('role') == 'teacher' %}
+                <a href="{{ url_for('teacher_dashboard') }}" class="nav-link">Teacher Portal</a>
+            {% else %}
+                <a href="{{ url_for('student_dashboard') }}" class="nav-link">Student Portal</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="nav-btn">Logout ({{ session.username }})</a>
+        </div>
+    </nav>
+    <div class="container">
+        <header class="page-header">
+            <h1>AI Question Paper Generator</h1>
+            <p>Upload a PDF chapter and let AI create a professional question paper for you.</p>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <main>
+            <div class="card upload-card glass">
+                <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" id="upload-form">
+                    <div class="upload-area" id="upload-area">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <h3>Drag & Drop your PDF here</h3>
+                        <p>or</p>
+                        <label for="pdf_file" class="btn btn-primary">Browse File</label>
+                        <input type="file" name="pdf_file" id="pdf_file" accept=".pdf" style="display: none;" required>
+                    </div>
+                    <div class="file-info" id="file-info" style="display: none;">
+                        <p class="filename" id="filename-display"></p>
+                        <button type="submit" class="btn btn-success" id="upload-btn">Upload and Proceed</button>
+                    </div>
+                </form>
+                
+                <!-- Loading overlay -->
+                <div id="loading-overlay" class="loading-overlay" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Extracting text from PDF...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

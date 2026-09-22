@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - AI Career Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        .dashboard-container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #10b981;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 800;
+            border: 2px solid #000000;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 800;
+        }
+        .badge-verified {
+            background: #f0fdf4;
+            color: #10b981;
+            border: 1.5px solid #10b981;
+        }
+        .badge-pending {
+            background: #fefce8;
+            color: #ca8a04;
+            border: 1.5px solid #ca8a04;
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .history-table th, .history-table td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+            color: #000000;
+        }
+        .history-table th {
+            background: #000000;
+            color: #ffffff;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="{{ url_for('dashboard') }}" class="nav-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#10b981;"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+            <span>Smart Campus Toolkit</span>
+        </a>
+        <div class="nav-links">
+            {% if session.get('role') == 'teacher' %}
+                <a href="{{ url_for('teacher_dashboard') }}" class="nav-link">Teacher Dashboard</a>
+                <a href="{{ url_for('teacher_dashboard') }}#previous-results" class="nav-link">Previous Results</a>
+                <a href="{{ url_for('resume_builder') }}" class="nav-link">Resume Builder</a>
+            {% else %}
+                <a href="{{ url_for('student_dashboard') }}" class="nav-link">Student Portal</a>
+                <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+            {% endif %}
+            <a href="{{ url_for('profile') }}" class="nav-link active">Profile</a>
+            <div class="nav-user">
+                <span style="font-weight: 700;">{{ session['username'] }}</span>
+                <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="card" style="margin-bottom: 30px; background: #ffffff; border: 2px solid #000000; border-radius: 20px; padding: 35px; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    {{ user['username'][0].upper() }}
+                </div>
+                <div>
+                    <h2 style="margin-bottom: 5px; display: flex; align-items: center; gap: 10px; color: #000000; font-weight: 800;">
+                        {{ profile['full_name'] or user['username'] }}
+                        {% if user['is_verified'] %}
+                            <span class="badge badge-verified">✓ Verified Account</span>
+                        {% else %}
+                            <span class="badge badge-pending">Verification Pending</span>
+                        {% endif %}
+                    </h2>
+                    <p style="color: #4b5563; font-weight: 600;">
+                        Joined: {{ profile['joined_date'][:10] if profile['joined_date'] else 'Recently' }} &bull; 
+                        Auth Method: <span style="text-transform: capitalize; color: #000000; font-weight: 700;">{{ user['auth_provider'] }}</span>
+                    </p>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div style="background: #f8fafc; border: 2px solid #000000; border-radius: 12px; padding: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #000000; font-weight: 800;">Account Details</h3>
+                    <p style="margin: 6px 0; color: #000000;"><strong>Username:</strong> {{ user['username'] }}</p>
+                    <p style="margin: 6px 0; color: #000000;"><strong>Email:</strong> {{ user['email'] or 'Not provided' }}</p>
+                    <p style="margin: 6px 0; color: #000000;"><strong>Role:</strong> <span style="text-transform: capitalize; color: #10b981; font-weight: 800;">{{ session.get('role', 'student') }}</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="background: #ffffff; border: 2px solid #000000; border-radius: 20px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+            <h3 style="margin-bottom: 15px; color: #000000; font-weight: 800;">Recent Login Activity</h3>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>IP Address</th>
+                        <th>Method</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in history %}
+                    <tr>
+                        <td>{{ h['login_time'] }}</td>
+                        <td>{{ h['ip_address'] }}</td>
+                        <td style="text-transform: capitalize; font-weight: 700;">{{ h['method'] }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; color: #64748b; font-weight: 600;">No login history available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

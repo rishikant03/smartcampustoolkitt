@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Examination Monitor - {{ test.title }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body { background: #ffffff; color: #000000; }
+        .monitor-container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        .live-banner { background: #000000; border: 2px solid #000000; border-radius: 20px; padding: 25px 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); color: #ffffff; }
+        .live-dot { width: 12px; height: 12px; background: #10b981; border-radius: 50%; display: inline-block; animation: pulse 1s infinite; box-shadow: 0 0 10px rgba(16, 185, 129, 0.8); }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+
+        .monitor-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .m-card { background: #ffffff; border: 2px solid #000000; border-radius: 16px; padding: 20px; text-align: center; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05); }
+        .m-value { font-size: 2.2rem; font-weight: 800; color: #10b981; }
+        .m-label { font-size: 0.8rem; color: #52525b; text-transform: uppercase; margin-top: 4px; font-weight: 700; }
+
+        .table-card { background: #ffffff; border: 2px solid #000000; border-radius: 20px; padding: 25px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05); color: #000000; }
+        .student-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .student-table th, .student-table td { padding: 14px 16px; border-bottom: 1px solid #e2e8f0; font-size: 0.92rem; color: #000000; }
+        .student-table th { color: #000000; font-size: 0.82rem; text-transform: uppercase; font-weight: 700; }
+
+        .warning-pill { padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; }
+        .warning-safe { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+        .warning-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+        .status-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .status-active { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+        .status-closed { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar glass">
+    <div class="nav-brand">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981;"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+        <span>Smart Campus Toolkit</span>
+    </div>
+    <div class="nav-links">
+        <a href="{{ url_for('teacher_dashboard') }}" class="nav-link">Teacher Dashboard</a>
+        <a href="{{ url_for('test_results_page', test_id=test.id) }}" class="nav-link">Results Dashboard</a>
+        <a href="{{ url_for('teacher_dashboard') }}#previous-results" class="nav-link">Previous Results</a>
+        <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
+        <div class="nav-user">
+            <span style="font-weight: 700;">Teacher: {{ session['username'] }}</span>
+            <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="monitor-container">
+    <div class="live-banner">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <span class="live-dot"></span>
+                <strong style="color: #ffffff; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Live Monitoring Mode</strong>
+            </div>
+            <h1 style="font-size: 1.6rem; margin: 0; color: #ffffff;">{{ test.title }} ({{ test.subject }})</h1>
+            <p style="color: #cbd5e1; font-size: 0.9rem; margin: 4px 0 0 0;">
+                Test ID: <strong style="color:white; font-family: monospace;">{{ test.id }}</strong> | 
+                Password: <strong style="color:white; font-family: monospace;">{{ test.password }}</strong> | 
+                Duration: <strong>{{ test.duration_mins }} mins</strong> | 
+                Max Warnings: <strong>{{ test.max_warnings }}</strong>
+            </p>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <span id="testStatusBadge" class="status-badge {% if test.is_active %}status-active{% else %}status-closed{% endif %}" style="padding: 6px 14px; font-size: 0.85rem; letter-spacing: 0.5px;">
+                {% if test.is_active %}● ACTIVE{% else %}■ STOPPED{% endif %}
+            </span>
+            <button type="button" class="btn btn-secondary" onclick="fetchLiveUpdates()">🔄 Refresh</button>
+            <button type="button" id="btnStopLiveTest" class="btn" style="background: #dc2626; color: #ffffff; border: 1px solid #b91c1c; font-weight: 700; padding: 8px 16px; border-radius: 8px; cursor: pointer; display: {% if test.is_active %}inline-flex{% else %}none{% endif %}; align-items: center; gap: 6px;" onclick="confirmStopTest()">
+                🛑 Stop Test
+            </button>
+            <form id="reopenForm" action="{{ url_for('teacher_toggle_status', test_id=test.id) }}" method="POST" style="display: {% if not test.is_active %}inline{% else %}none{% endif %};" onsubmit="return confirm('Reopen this examination? Students will be able to join and continue.');">
+                <button type="submit" class="btn" style="background: #f0fdf4; color: #047857; border: 1.5px solid #10b981; font-weight: 700; padding: 8px 16px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                    ▶ Reopen Test
+                </button>
+            </form>
+            <a href="{{ url_for('test_results_page', test_id=test.id) }}" class="btn btn-primary">View Results &rarr;</a>
+        </div>
+    </div>
+
+    <!-- Live Counter Cards -->
+    <div class="monitor-grid">
+        <div class="m-card">
+            <div class="m-value" id="countJoined" style="color: #10b981;">0</div>
+            <div class="m-label">Total Joined</div>
+        </div>
+        <div class="m-card">
+            <div class="m-value" id="countActive" style="color: #10b981;">0</div>
+            <div class="m-label">Currently Testing</div>
+        </div>
+        <div class="m-card">
+            <div class="m-value" id="countSubmitted" style="color: #10b981;">0</div>
+            <div class="m-label">Submitted</div>
+        </div>
+        <div class="m-card">
+            <div class="m-value" id="countViolations" style="color: #ef4444;">0</div>
+            <div class="m-label">Total Violations</div>
+        </div>
+    </div>
+
+    <!-- Live Students Table -->
+    <div class="table-card">
+        <h3 style="margin-bottom: 15px;">Active Participants Roster</h3>
+        <div style="overflow-x: auto;">
+            <table class="student-table">
+                <thead>
+                    <tr>
+                        <th>Student Full Name</th>
+                        <th>Roll / ID</th>
+                        <th>Test Title</th>
+                        <th>Exam Status</th>
+                        <th>Progress (Answered)</th>
+                        <th>Violations</th>
+                        <th>Submission Time</th>
+                    </tr>
+                </thead>
+                <tbody id="studentRosterBody">
+                    <tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:30px;">Loading live candidates...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const testId = "{{ test.id }}";
+
+    async function confirmStopTest() {
+        const confirmed = confirm("Are you sure you want to STOP this examination now?\n\n• No new students can join.\n• All active students currently taking the test will have their work automatically graded and submitted.\n• Results will be immediately finalized.");
+        if (!confirmed) return;
+
+        const btn = document.getElementById('btnStopLiveTest');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Stopping...';
+        }
+
+        try {
+            const resp = await fetch(`/teacher/test/stop/${testId}`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await resp.json();
+            if (data.success) {
+                alert(data.message || 'Examination stopped successfully.');
+                fetchLiveUpdates();
+            } else {
+                alert(data.error || 'Failed to stop test.');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '🛑 Stop Test';
+                }
+            }
+        } catch (err) {
+            alert('An error occurred stopping test.');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = '🛑 Stop Test';
+            }
+        }
+    }
+
+    async function fetchLiveUpdates() {
+        try {
+            const resp = await fetch(`/api/teacher/live-monitor/${testId}`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+
+            document.getElementById('countJoined').textContent = data.total_joined;
+            document.getElementById('countActive').textContent = data.active_count;
+            document.getElementById('countSubmitted').textContent = data.submitted_count;
+            document.getElementById('countViolations').textContent = data.total_violations;
+
+            // Update status badge and toggle buttons if status changed
+            const badge = document.getElementById('testStatusBadge');
+            const btnStop = document.getElementById('btnStopLiveTest');
+            const reopenForm = document.getElementById('reopenForm');
+            if (data.is_active !== undefined) {
+                if (data.is_active) {
+                    if (badge) {
+                        badge.className = 'status-badge status-active';
+                        badge.textContent = '● ACTIVE';
+                    }
+                    if (btnStop) {
+                        btnStop.style.display = 'inline-flex';
+                        btnStop.disabled = false;
+                        btnStop.textContent = '🛑 Stop Test';
+                    }
+                    if (reopenForm) reopenForm.style.display = 'none';
+                } else {
+                    if (badge) {
+                        badge.className = 'status-badge status-closed';
+                        badge.textContent = '■ STOPPED';
+                    }
+                    if (btnStop) btnStop.style.display = 'none';
+                    if (reopenForm) reopenForm.style.display = 'inline';
+                }
+            }
+
+            const tbody = document.getElementById('studentRosterBody');
+            if (!data.participants || data.participants.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:30px;">No students have joined yet. Share Test ID and Password to begin!</td></tr>';
+                return;
+            }
+
+            let html = '';
+            data.participants.forEach(p => {
+                const isDanger = p.tab_switches > 0;
+                const isSubmitted = p.status === 'submitted';
+                const timeDisplay = isSubmitted && p.completed_at ? 
+                    `<strong style="color: #047857; font-family: monospace;">🕒 ${p.completed_at}</strong>` :
+                    `<span style="color: #64748b;">In progress (${Math.floor((p.time_spent || 0) / 60)}m)</span>`;
+                html += `
+                    <tr>
+                        <td><strong style="color: #000000; font-size: 0.95rem;">${p.student_name || p.username}</strong></td>
+                        <td style="color: #64748b;">${p.email || 'N/A'}</td>
+                        <td><strong style="color: #000000;">${data.title}</strong></td>
+                        <td>
+                            <span style="font-weight:700; ${isSubmitted ? 'color: #047857; background: #dcfce7; padding: 3px 8px; border-radius: 6px;' : 'color: #1e40af; background: #eff6ff; padding: 3px 8px; border-radius: 6px;'}">
+                                ${p.status.toUpperCase()}
+                            </span>
+                        </td>
+                        <td>${p.answered_count} / ${data.total_questions} Qs</td>
+                        <td>
+                            <span class="warning-pill ${isDanger ? 'warning-danger' : 'warning-safe'}">
+                                ${p.tab_switches} Warnings
+                            </span>
+                        </td>
+                        <td>${timeDisplay}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        } catch (err) {
+            console.error('Error fetching live updates:', err);
+        }
+    }
+
+    // Poll every 5 seconds
+    setInterval(fetchLiveUpdates, 5000);
+    window.onload = fetchLiveUpdates;
+</script>
+
+</body>
+</html>

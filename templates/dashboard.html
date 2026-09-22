@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - AI Career & Exam Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        .dashboard-card,
+        a.dashboard-card {
+            text-align: center;
+            padding: 40px 25px;
+            cursor: pointer;
+            text-decoration: none !important;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            background: #ffffff;
+            border: 2px solid #000000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+        }
+        .dashboard-card:hover,
+        a.dashboard-card:hover {
+            border-color: #10b981;
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.25);
+            text-decoration: none !important;
+        }
+        .dashboard-card svg {
+            width: 56px;
+            height: 56px;
+            margin-bottom: 18px;
+            color: #10b981;
+        }
+        .dashboard-card h3,
+        a.dashboard-card h3 {
+            font-size: 1.35rem;
+            color: #000000;
+            font-weight: 800;
+            margin-bottom: 10px;
+            text-decoration: none !important;
+        }
+        .dashboard-card p,
+        a.dashboard-card p {
+            color: #4b5563;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            text-decoration: none !important;
+        }
+
+        .action-banner {
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            background: #000000;
+            color: #ffffff;
+            border: 2px solid #000000;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .role-tag {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+        .role-teacher {
+            background: #10b981;
+            color: #ffffff;
+            border: 1px solid #10b981;
+        }
+        .role-student {
+            background: #f0fdf4;
+            color: #10b981;
+            border: 1.5px solid #10b981;
+        }
+
+        .mock-subject-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #1a1a1a;
+            border: 1.5px solid #333333;
+            border-radius: 12px;
+            padding: 10px 18px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .mock-subject-pill:hover {
+            background: #10b981;
+            color: #ffffff;
+            border-color: #10b981;
+            transform: translateY(-2px);
+        }
+
+        .token-copy-box {
+            font-family: monospace;
+            background: #f0fdf4;
+            padding: 6px 12px;
+            border-radius: 8px;
+            letter-spacing: 2px;
+            color: #065f46;
+            font-size: 1.05rem;
+            font-weight: 700;
+            border: 1.5px solid #10b981;
+            cursor: pointer;
+        }
+
+        .welcome-section {
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+            margin-bottom: 25px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981;"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+            <span>Smart Campus Toolkit</span>
+        </div>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}" class="nav-link active">Dashboard</a>
+            {% if session.get('role') == 'teacher' %}
+                <a href="{{ url_for('teacher_dashboard') }}" class="nav-link">Teacher Portal</a>
+                <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
+            {% else %}
+                <a href="{{ url_for('student_dashboard') }}" class="nav-link">Student Portal</a>
+                <a href="{{ url_for('practice_setup') }}" class="nav-link">AI Practice</a>
+                <a href="{{ url_for('mock_test_setup') }}" class="nav-link">Mock Test</a>
+                <a href="{{ url_for('index') }}" class="nav-link">Question Papers</a>
+                <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
+            {% endif %}
+            <div class="nav-user">
+                <span style="font-weight: 700;">{{ session['username'] }}</span>
+                <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <h1 style="display: flex; align-items: center; gap: 12px; margin: 0; color: #000000; font-weight: 800;">
+                    Welcome, {{ session['username'] }}!
+                    <span class="role-tag {% if session.get('role') == 'teacher' %}role-teacher{% else %}role-student{% endif %}">
+                        {{ session.get('role', 'student') }}
+                    </span>
+                    {% if is_verified %}
+                        <span style="font-size: 0.85rem; padding: 4px 10px; background: #f0fdf4; color: #10b981; border: 1.5px solid #10b981; border-radius: 20px; font-weight: 800;">✓ Verified</span>
+                    {% else %}
+                        <span style="font-size: 0.85rem; padding: 4px 10px; background: #fefce8; color: #ca8a04; border: 1.5px solid #ca8a04; border-radius: 20px; font-weight: 800;">Pending Verification</span>
+                    {% endif %}
+                </h1>
+            </div>
+            <p style="margin-top: 8px; color: #4b5563; font-weight: 600;">
+                {% if session.get('role') == 'teacher' %}
+                    Create, schedule, and proctor online examinations for your students.
+                {% else %}
+                    Prepare for exams with practice mock tests or join tests assigned by your teacher.
+                {% endif %}
+            </p>
+        </div>
+
+        {% if not is_verified %}
+        <div style="background: #f0fdf4; border: 2px solid #10b981; border-radius: 16px; padding: 18px 24px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <div style="max-width: 520px;">
+                <h4 style="color: #000000; margin-bottom: 4px; font-weight: 800;">Email Verification Recommended</h4>
+                <p style="color: #1f2937; font-size: 0.9rem; margin: 0; font-weight: 600;">Verify your Gmail address to unlock complete feature access.</p>
+            </div>
+            <a href="{{ url_for('login_google') }}" class="btn btn-primary" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800; padding: 10px 18px; font-size: 0.9rem;">Verify via Gmail</a>
+        </div>
+        {% endif %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages" style="margin-bottom: 25px;">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <main>
+            <!-- ==================================================== -->
+            <!-- TEACHER VIEW: MAKE ONLINE TEST & MANAGE EXAMS        -->
+            <!-- ==================================================== -->
+            {% if session.get('role') == 'teacher' %}
+            
+            <div class="action-banner">
+                <div>
+                    <h2 style="font-size: 1.5rem; margin-bottom: 6px; color: #ffffff; font-weight: 800;">Make an Online Test</h2>
+                    <p style="color: #cbd5e1; font-size: 0.95rem; margin: 0;">Configure exam settings and generate secure access tokens for your students.</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <a href="{{ url_for('create_test') }}" class="btn" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800; padding: 12px 24px; text-decoration: none; border-radius: 10px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">
+                        + AI Exam Studio
+                    </a>
+                    <button type="button" class="btn" onclick="toggleTestModal(true)" style="background: #ffffff; border: 2px solid #000000; color: #000000; font-weight: 800; padding: 12px 20px; border-radius: 10px; cursor: pointer;">
+                        Legacy Paper Test
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal for Creating Online Test -->
+            <div id="createTestModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 999; justify-content: center; align-items: center; padding: 20px;">
+                <div class="card" style="max-width: 550px; width: 100%; border: 2px solid #000000; border-radius: 20px; padding: 35px; background: #ffffff; box-shadow: 0 20px 50px rgba(0,0,0,0.2);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0; font-size: 1.4rem; color: #000000; font-weight: 800;">Make New Online Test</h2>
+                        <button type="button" onclick="toggleTestModal(false)" style="background: none; border: none; color: #000000; font-size: 1.8rem; cursor: pointer; font-weight: 800;">&times;</button>
+                    </div>
+
+                    {% if available_papers %}
+                    <form action="{{ url_for('teacher_create_legacy_exam') }}" method="POST">
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label for="paper_id" style="display: block; margin-bottom: 8px; font-size: 0.9rem; color: #000000; font-weight: 700;">Select Question Paper</label>
+                            <select name="paper_id" id="paper_id" required style="width: 100%; padding: 12px 14px; border-radius: 12px; background: #ffffff; color: #000000; border: 2px solid #000000; font-weight: 600;">
+                                {% for p in available_papers %}
+                                <option value="{{ p.id }}">{{ p.subject }} ({{ p.exam_name }}) - {{ p.filename }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                            <div>
+                                <label for="duration_mins" style="display: block; margin-bottom: 8px; font-size: 0.9rem; color: #000000; font-weight: 700;">Duration (Minutes)</label>
+                                <input type="number" name="duration_mins" id="duration_mins" value="60" min="5" max="300" required style="width: 100%; padding: 12px; border-radius: 12px; background: #ffffff; color: #000000; border: 2px solid #000000; font-weight: 600;">
+                            </div>
+                            <div>
+                                <label for="max_warnings" style="display: block; margin-bottom: 8px; font-size: 0.9rem; color: #000000; font-weight: 700;">Max Tab Warnings</label>
+                                <input type="number" name="max_warnings" id="max_warnings" value="3" min="1" max="10" required style="width: 100%; padding: 12px; border-radius: 12px; background: #ffffff; color: #000000; border: 2px solid #000000; font-weight: 600;">
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                            <button type="button" class="btn btn-secondary" style="background: #ffffff; border: 2px solid #000000; color: #000000; font-weight: 700;" onclick="toggleTestModal(false)">Cancel</button>
+                            <button type="submit" class="btn btn-primary" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800;">Launch Online Exam</button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div style="text-align: center; padding: 20px 0;">
+                        <p style="color: #4b5563; margin-bottom: 20px; font-weight: 600;">You haven't generated any Question Papers yet. Generate a paper from a PDF first, or use the new AI Exam Studio!</p>
+                        <a href="{{ url_for('create_test') }}" class="btn btn-primary" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800; text-decoration: none; padding: 12px 20px; border-radius: 10px;">Go to AI Exam Studio &rarr;</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Active Online Exams Table -->
+            <div class="card" style="margin-top: 30px; background: #ffffff; border: 2px solid #000000; border-radius: 20px; padding: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; color: #000000; font-weight: 800;">My Active Online Exams</h3>
+                    <small style="color: #64748b; font-weight: 600;">Share Exam ID and Access Token with your students</small>
+                </div>
+
+                {% if my_exams %}
+                <div style="overflow-x: auto;">
+                    <table style="width:100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="background: #000000; color: #ffffff; font-size: 0.85rem;">
+                                <th style="padding: 12px; border-top-left-radius: 8px;">Exam ID</th>
+                                <th style="padding: 12px;">Access Token</th>
+                                <th style="padding: 12px;">Duration</th>
+                                <th style="padding: 12px;">Created Date</th>
+                                <th style="padding: 12px; border-top-right-radius: 8px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for exam in my_exams %}
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 12px;"><strong style="color: #000000;">{{ exam['id'] }}</strong></td>
+                                <td style="padding: 12px;">
+                                    <span class="token-copy-box" onclick="copyText('{{ exam['access_token'] }}', this)" title="Click to copy token">
+                                        {{ exam['access_token'] }}
+                                    </span>
+                                </td>
+                                <td style="padding: 12px; color: #000000; font-weight: 600;">{{ exam['duration_mins'] }} mins</td>
+                                <td style="padding: 12px; color: #64748b; font-size: 0.85rem; font-weight: 600;">{{ exam['created_at'][:10] if exam['created_at'] else 'Active' }}</td>
+                                <td style="padding: 12px;">
+                                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                        {% if exam['is_active'] %}
+                                        <form action="{{ url_for('teacher_legacy_exam_toggle', exam_id=exam['id']) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to STOP this exam? Students will no longer be able to join.');">
+                                            <button type="submit" class="btn" style="padding: 6px 12px; font-size: 0.8rem; background: #dc2626; color: #ffffff; border: 1px solid #b91c1c; font-weight: 700; border-radius: 6px; cursor: pointer;">
+                                                🛑 Stop
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <form action="{{ url_for('teacher_legacy_exam_toggle', exam_id=exam['id']) }}" method="POST" style="display:inline;" onsubmit="return confirm('Reopen this exam?');">
+                                            <button type="submit" class="btn" style="padding: 6px 12px; font-size: 0.8rem; background: #f0fdf4; color: #047857; border: 1.5px solid #10b981; font-weight: 700; border-radius: 6px; cursor: pointer;">
+                                                ▶ Reopen
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                        <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; background: #ffffff; border: 2px solid #000000; color: #000000; font-weight: 700;" onclick="copyExamDetails('{{ exam['id'] }}', '{{ exam['access_token'] }}')">
+                                            Copy Invite
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div style="text-align: center; padding: 30px; color: #64748b; font-weight: 600;">
+                    <p>No active exams yet. Click <strong>"+ AI Exam Studio"</strong> or <strong>"Legacy Paper Test"</strong> to create your first exam!</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- ==================================================== -->
+            <!-- STUDENT VIEW: JOIN EXAM & PRACTICE MOCK TEST         -->
+            <!-- ==================================================== -->
+            {% else %}
+
+            <!-- Join Online Exam Card -->
+            <div class="card" style="margin-top: 30px; border-left: 6px solid #10b981; padding: 30px; background: #ffffff; border: 2px solid #000000; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+                <h3 style="margin-bottom: 6px; font-size: 1.3rem; color: #000000; font-weight: 800;">Join an Online Exam</h3>
+                <p style="color: #4b5563; margin-bottom: 20px; font-weight: 600;">Enter the Exam ID and Access Token provided by your teacher.</p>
+                <form action="{{ url_for('join_exam') }}" method="POST" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <input type="text" name="exam_id" placeholder="Exam ID (e.g. EXAM-ABCD1234)" required style="flex: 1; min-width: 200px; padding: 12px 16px; border-radius: 12px; border: 2px solid #000000; background: #ffffff; color: #000000; font-weight: 600;">
+                    <input type="text" name="access_token" placeholder="Access Token" required style="flex: 1; min-width: 200px; padding: 12px 16px; border-radius: 12px; border: 2px solid #000000; background: #ffffff; color: #000000; font-weight: 600;">
+                    <button type="submit" class="btn btn-primary" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800; padding: 12px 24px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);">Join Exam &rarr;</button>
+                </form>
+            </div>
+
+            <!-- NEW FEATURE: Practice Mock Test Card -->
+            <div class="action-banner">
+                <div style="max-width: 550px;">
+                    <span style="background: #10b981; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 800; border: 1px solid #10b981;">NEW FEATURE</span>
+                    <h2 style="font-size: 1.5rem; margin: 10px 0 6px 0; color: #ffffff; font-weight: 800;">Practice Mock Test</h2>
+                    <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">Sharpen your exam skills with self-paced timed practice tests, instant scorecards, and answer explanations.</p>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <a href="{{ url_for('mock_test_setup') }}" class="mock-subject-pill">Computer Science</a>
+                        <a href="{{ url_for('mock_test_setup') }}" class="mock-subject-pill">Science</a>
+                        <a href="{{ url_for('mock_test_setup') }}" class="mock-subject-pill">Mathematics</a>
+                        <a href="{{ url_for('mock_test_setup') }}" class="mock-subject-pill">English</a>
+                    </div>
+                </div>
+                <div>
+                    <a href="{{ url_for('mock_test_setup') }}" class="btn btn-primary" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800; padding: 14px 26px; font-size: 1rem; text-decoration: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">
+                        Start Mock Test &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recent Mock Tests Summary (if available) -->
+            {% if recent_mock_tests %}
+            <div class="card" style="margin-top: 25px; padding: 25px; background: #ffffff; border: 2px solid #000000; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h4 style="margin: 0; color: #000000; font-weight: 800;">My Recent Practice Scores</h4>
+                    <a href="{{ url_for('mock_test_setup') }}" style="color: #10b981; font-size: 0.85rem; text-decoration: none; font-weight: 700;">View All &rarr;</a>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                    {% for t in recent_mock_tests %}
+                    {% set pct = ((t['score'] / t['total_questions']) * 100)|round|int %}
+                    <div style="background: #f8fafc; border: 2px solid #000000; border-radius: 12px; padding: 12px 15px;">
+                        <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 4px; color: #000000;">{{ t['subject'] }}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;">{{ t['difficulty'] }}</span>
+                            <span style="font-weight: 800; color: #10b981; font-size: 0.95rem;">
+                                {{ t['score'] }}/{{ t['total_questions'] }} ({{ pct }}%)
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% endif %}
+
+            <!-- General Platform Features Grid -->
+            <div class="dashboard-grid">
+                {% if session.get('role') == 'teacher' %}
+                <div class="card dashboard-card" onclick="window.location.href='{{ url_for('teacher_dashboard') }}'">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <h3>Teacher Exam Portal</h3>
+                    <p>Conduct live proctored tests, view real-time anti-cheat telemetry, and analyze class results.</p>
+                </div>
+                {% else %}
+                <a href="{{ url_for('student_dashboard') }}" class="card dashboard-card">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+                    <h3>Student Exam Portal</h3>
+                    <p>Join live examinations, monitor real-time test timer, and generate instant AI study feedback.</p>
+                </a>
+                {% endif %}
+
+                <a href="{{ url_for('index') }}" class="card dashboard-card">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                    <h3>Question Paper Generator</h3>
+                    <p>Upload textbooks or notes and automatically generate customized exam papers.</p>
+                </a>
+
+                <a href="{{ url_for('practice_setup') }}" class="card dashboard-card">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                    <h3>Self-Paced AI Practice</h3>
+                    <p>Generate diagnostic practice questions directly from uploaded books with automated grading.</p>
+                </a>
+            </div>
+        </main>
+    </div>
+    </div>
+
+    <script>
+        function toggleTestModal(show) {
+            const modal = document.getElementById('createTestModal');
+            if (modal) {
+                modal.style.display = show ? 'flex' : 'none';
+            }
+        }
+
+        function copyText(text, el) {
+            navigator.clipboard.writeText(text);
+            const original = el.innerHTML;
+            el.innerHTML = 'Copied! ✓';
+            setTimeout(() => { el.innerHTML = original; }, 1500);
+        }
+
+        function copyExamDetails(examId, token) {
+            const msg = `Exam ID: ${examId}\nAccess Token: ${token}\nJoin at: ${window.location.origin}/`;
+            navigator.clipboard.writeText(msg);
+            alert('Exam invite details copied to clipboard!\n\n' + msg);
+        }
+    </script>
+</body>
+</html>

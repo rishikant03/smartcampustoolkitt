@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - Smart Campus Toolkit</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body style="margin:0; padding:0; background:var(--background);">
+
+<div class="auth-split-container">
+    
+    <!-- LEFT: Branding & Features -->
+    <div class="auth-left">
+        <div class="auth-logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                <path d="M2 17l10 5 10-5"></path>
+                <path d="M2 12l10 5 10-5"></path>
+            </svg>
+            Smart Campus Toolkit
+        </div>
+        <p style="font-size: 1.2rem; color: #cbd5e1; max-width: 500px; margin-bottom: 20px;">
+            Join thousands of students and teachers using AI to transform education. Start your journey today.
+        </p>
+        
+        <ul class="auth-features">
+            <li>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                AI Question Paper Generator
+            </li>
+            <li>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                AI Resume Builder
+            </li>
+            <li>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                Secure Online Examination System
+            </li>
+        </ul>
+    </div>
+
+    <!-- RIGHT: Auth Form -->
+    <div class="auth-right">
+        <div class="auth-card" style="max-width: 550px;">
+            <h1 class="auth-title">Create Account</h1>
+            <p class="auth-subtitle">Join the platform as a student, teacher, or administrator.</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form action="{{ url_for('register') }}" method="POST" id="registerForm">
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label for="name">Full Name</label>
+                    <div class="input-icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        <input type="text" id="name" name="name" class="input-with-icon" placeholder="e.g. Alexander Hamilton" required autofocus autocomplete="name">
+                    </div>
+                </div>
+
+                <div class="form-grid" style="margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <div class="input-icon-wrapper">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            <input type="email" id="email" name="email" class="input-with-icon" placeholder="e.g. alex@example.com" required autocomplete="email">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="role">Select Your Role</label>
+                        <select id="role" name="role" required style="width: 100%; padding: 14px 16px; border: 1.5px solid #000000; border-radius: 10px; background: #ffffff; color: #000000; font-size: 1rem; outline: none; font-weight: 600;">
+                            <option value="student" style="background: #ffffff; color: #000000;">Student</option>
+                            <option value="teacher" style="background: #ffffff; color: #000000;">Teacher</option>
+                            <option value="admin" style="background: #ffffff; color: #000000;">Administrator</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label for="password">Password</label>
+                    <div class="input-icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        <input type="password" id="password" name="password" class="input-with-icon" placeholder="At least 8 characters" required>
+                    </div>
+                    <div id="passwordRequirements" style="display:none; color: #000000; background: #f8fafc; border: 1.5px solid #000000; padding: 8px 12px; border-radius: 8px; margin-top: 8px; font-size: 0.82rem; line-height: 1.4;">
+                        Must contain at least 8 characters.
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 25px;">
+                    <label for="confirm_password">Confirm Password</label>
+                    <div class="input-icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        <input type="password" id="confirm_password" name="confirm_password" class="input-with-icon" placeholder="Re-enter your password" required>
+                    </div>
+                    <div id="passwordMatch" style="display:none; color: #991b1b; background: #fef2f2; border: 1.5px solid #ef4444; padding: 6px 12px; border-radius: 8px; margin-top: 8px; font-size: 0.82rem; font-weight: 600;">
+                        Passwords do not match.
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn btn-primary btn-large" style="margin-top: 10px;">Register &amp; Send OTP</button>
+            </form>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <p style="color: var(--text-muted);">Already have an account? <a href="{{ url_for('login') }}" style="color: #10b981; text-decoration: none; font-weight: 700;">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm_password');
+    const requirements = document.getElementById('passwordRequirements');
+    const matchWarning = document.getElementById('passwordMatch');
+    const form = document.getElementById('registerForm');
+    
+    function validatePassword() {
+        if (password.value.length > 0 && password.value.length < 8) {
+            requirements.style.display = 'block';
+        } else {
+            requirements.style.display = 'none';
+        }
+    }
+
+    function validateMatch() {
+        if (confirmPassword.value.length > 0 && confirmPassword.value !== password.value) {
+            matchWarning.style.display = 'block';
+        } else {
+            matchWarning.style.display = 'none';
+        }
+    }
+
+    password.addEventListener('input', () => {
+        validatePassword();
+        validateMatch();
+    });
+    
+    confirmPassword.addEventListener('input', validateMatch);
+
+    form.addEventListener('submit', function(e) {
+        if (password.value.length < 8) {
+            e.preventDefault();
+            requirements.style.display = 'block';
+            password.focus();
+            return;
+        }
+        if (password.value !== confirmPassword.value) {
+            e.preventDefault();
+            matchWarning.style.display = 'block';
+            confirmPassword.focus();
+            return;
+        }
+    });
+</script>
+
+</body>
+</html>

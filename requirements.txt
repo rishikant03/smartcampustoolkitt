@@ -1,0 +1,6 @@
+Flask==3.0.3
+pypdf==6.16.2
+google-generativeai
+httpx==0.27.2
+reportlab==4.2.0
+python-dotenv==1.0.1

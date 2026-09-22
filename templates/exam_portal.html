@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ test.title }} - Secure Examination Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-surface: #ffffff;
+            --bg-surface-elevated: #f8fafc;
+            --border-color: #000000;
+            --primary: #10b981;
+            --primary-hover: #059669;
+            --success: #10b981;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --text-main: #000000;
+            --text-muted: #52525b;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg-primary);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Top Header */
+        .portal-header {
+            height: 68px;
+            background: #ffffff;
+            border-bottom: 2px solid #000000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: relative;
+            z-index: 50;
+        }
+        .brand-badge {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            background: #10b981;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.35);
+        }
+        .brand-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #000000;
+            margin: 0;
+            max-width: 280px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .candidate-tag {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Center Timer */
+        .timer-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #000000;
+            border: 1.5px solid #000000;
+            border-radius: 12px;
+            padding: 8px 20px;
+        }
+        .timer-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #a1a1aa;
+            font-weight: 600;
+        }
+        .timer-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #10b981;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 90px;
+        }
+        .timer-display.danger {
+            color: #dc2626;
+            animation: timerPulse 1s infinite alternate;
+        }
+        @keyframes timerPulse {
+            from { transform: scale(1); filter: drop-shadow(0 0 4px rgba(220, 38, 38, 0.4)); }
+            to { transform: scale(1.04); filter: drop-shadow(0 0 12px rgba(220, 38, 38, 0.8)); }
+        }
+
+        /* Header Actions */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .save-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: #15803d;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: #dcfce7;
+            border: 1px solid #86efac;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .save-indicator.saving {
+            color: #b45309;
+            background: #fef3c7;
+            border-color: #fde68a;
+        }
+        .btn-calc {
+            background: #ffffff;
+            color: #000000;
+            border: 1.5px solid #000000;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .btn-calc:hover {
+            background: #f8fafc;
+            border-color: #10b981;
+        }
+        .btn-submit-exam {
+            background: #10b981;
+            color: #ffffff;
+            border: none;
+            padding: 9px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+            transition: all 0.2s ease;
+        }
+        .btn-submit-exam:hover {
+            transform: translateY(-1px);
+            background: #059669;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+        }
+
+        /* Layout */
+        .portal-body {
+            display: flex;
+            height: calc(100vh - 68px);
+            position: relative;
+            background: #ffffff;
+        }
+
+        /* Question Main Stage */
+        .portal-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+            overflow-y: auto;
+            position: relative;
+            padding: 24px 36px 36px 36px;
+        }
+
+        .question-meta-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-bottom: 24px;
+        }
+        .q-meta-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .q-badge {
+            background: #10b981;
+            color: #ffffff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .q-type-badge {
+            background: #f8fafc;
+            border: 1px solid #000000;
+            color: #000000;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            text-transform: capitalize;
+            font-weight: 600;
+        }
+        .q-meta-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 0.85rem;
+            color: #52525b;
+        }
+        .marks-chip {
+            color: #10b981;
+            font-weight: 700;
+        }
+        .neg-marks-chip {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        /* Question Box */
+        .question-box {
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+            margin-bottom: 24px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            color: #000000;
+        }
+        .question-text {
+            font-size: 1.15rem;
+            line-height: 1.65;
+            color: #000000;
+            font-weight: 600;
+            margin-bottom: 28px;
+        }
+
+        /* Option items */
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .option-item {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: #ffffff;
+            border: 1.5px solid #000000;
+            border-radius: 12px;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            color: #000000;
+        }
+        .option-item:hover {
+            background: #f0fdf4;
+            border-color: #10b981;
+            transform: translateX(4px);
+        }
+        .option-item.selected {
+            background: #dcfce7;
+            border-color: #10b981;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+        }
+        .option-radio {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid #000000;
+            margin-right: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+            background: #ffffff;
+        }
+        .option-item.selected .option-radio {
+            border-color: #10b981;
+            background: #10b981;
+        }
+        .option-radio-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ffffff;
+            display: none;
+        }
+        .option-item.selected .option-radio-dot {
+            display: block;
+        }
+        .option-label-letter {
+            font-weight: 700;
+            margin-right: 12px;
+            color: #000000;
+            font-size: 0.95rem;
+        }
+        .option-content {
+            font-size: 1rem;
+            color: #000000;
+            line-height: 1.5;
+            flex: 1;
+        }
+
+        /* Non-MCQ inputs */
+        .text-answer-input {
+            width: 100%;
+            background: #ffffff;
+            border: 1.5px solid #000000;
+            border-radius: 12px;
+            padding: 16px 20px;
+            color: #000000;
+            font-size: 1.05rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+        .text-answer-input:focus {
+            border-color: #10b981;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+        }
+        textarea.text-answer-input {
+            min-height: 160px;
+            resize: vertical;
+        }
+
+        /* Bottom Controls */
+        .controls-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 14px;
+            padding: 14px 20px;
+            gap: 12px;
+        }
+        .btn-ctrl {
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            border: 1.5px solid #000000;
+        }
+        .btn-ctrl-secondary {
+            background: #ffffff;
+            color: #000000;
+        }
+        .btn-ctrl-secondary:hover {
+            background: #000000;
+            color: #ffffff;
+        }
+        .btn-ctrl-review {
+            background: #fef3c7;
+            border: 1.5px solid #f59e0b;
+            color: #b45309;
+        }
+        .btn-ctrl-review:hover {
+            background: #f59e0b;
+            color: #ffffff;
+        }
+        .btn-ctrl-primary {
+            background: #10b981;
+            color: #ffffff;
+            border: none;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .btn-ctrl-primary:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.45);
+        }
+
+        /* Right Palette Sidebar */
+        .portal-sidebar {
+            width: 320px;
+            background: #ffffff;
+            border-left: 2px solid #000000;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .palette-header {
+            padding: 20px;
+            border-bottom: 2px solid #000000;
+        }
+        .palette-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #000000;
+            margin: 0 0 14px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .palette-legend {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.76rem;
+            color: #52525b;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-indicator {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+        .legend-answered { background: #10b981; border: 1px solid #10b981; }
+        .legend-review { background: #f59e0b; border: 1px solid #f59e0b; }
+        .legend-unanswered { background: #ffffff; border: 1.5px solid #000000; }
+        .legend-current { border: 2px solid #10b981; background: transparent; }
+
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            padding: 20px;
+        }
+        .q-tile {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            background: #ffffff;
+            border: 1.5px solid #000000;
+            color: #000000;
+            transition: all 0.15s ease;
+        }
+        .q-tile:hover {
+            transform: scale(1.08);
+            border-color: #10b981;
+            background: #f0fdf4;
+            color: #000000;
+        }
+        .q-tile.current {
+            outline: 2.5px solid #10b981;
+            outline-offset: 2px;
+            color: #000000;
+            border-color: #000000;
+        }
+        .q-tile.answered {
+            background: #10b981;
+            border-color: #10b981;
+            color: #ffffff;
+            font-weight: 800;
+        }
+        .q-tile.review {
+            background: #f59e0b;
+            border-color: #f59e0b;
+            color: #ffffff;
+        }
+        .q-tile.answered.review {
+            background: linear-gradient(135deg, #10b981 50%, #f59e0b 50%);
+            border-color: #f59e0b;
+            color: #ffffff;
+        }
+
+        .palette-summary-card {
+            margin: auto 20px 20px 20px;
+            background: #f8fafc;
+            border: 1.5px solid #000000;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            margin-bottom: 8px;
+            color: #52525b;
+        }
+        .summary-row:last-child { margin-bottom: 0; }
+        .summary-val {
+            font-weight: 700;
+            color: #000000;
+        }
+
+        /* Anti-cheating Fullscreen Overlay Modal */
+        .security-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .security-card {
+            max-width: 540px;
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            color: #000000;
+        }
+        .security-icon {
+            width: 72px;
+            height: 72px;
+            background: #f0fdf4;
+            color: #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 24px auto;
+            border: 2px solid #10b981;
+        }
+        .security-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #000000;
+            margin: 0 0 12px 0;
+        }
+        .security-desc {
+            color: #52525b;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+        .rules-list {
+            text-align: left;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #000000;
+            padding: 16px 20px;
+            margin-bottom: 28px;
+            font-size: 0.85rem;
+            color: #000000;
+        }
+        .rules-list li {
+            margin-bottom: 8px;
+        }
+        .rules-list li:last-child { margin-bottom: 0; }
+        .btn-enter-fullscreen {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+            transition: all 0.2s ease;
+        }
+        .btn-enter-fullscreen:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Violation Warning Toast/Modal */
+        .violation-banner {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ef4444;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.6);
+            animation: bounce 0.4s ease;
+        }
+        @keyframes bounce {
+            0% { transform: translate(-50%, -20px); opacity: 0; }
+            100% { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        /* Simple Calculator Modal */
+        .calc-modal {
+            position: fixed;
+            bottom: 30px;
+            right: 340px;
+            width: 280px;
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+            z-index: 999;
+            display: none;
+        }
+        .calc-display {
+            width: 100%;
+            height: 48px;
+            background: #f8fafc;
+            border: 1.5px solid #000000;
+            border-radius: 8px;
+            color: #000000;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.4rem;
+            text-align: right;
+            padding: 8px 12px;
+            margin-bottom: 14px;
+            outline: none;
+        }
+        .calc-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        .calc-btn {
+            background: #ffffff;
+            border: 1.5px solid #000000;
+            color: #000000;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .calc-btn:hover { background: #f0fdf4; border-color: #10b981; }
+        .calc-btn.op { background: #10b981; color: #ffffff; border-color: #10b981; }
+
+        @media (max-width: 900px) {
+            .portal-body { flex-direction: column; overflow-y: auto; }
+            .portal-sidebar { width: 100%; height: auto; }
+            .calc-modal { right: 20px; }
+        }
+    </style>
+</head>
+<body id="portal-body">
+
+    <!-- Top Header -->
+    <header class="portal-header">
+        <div class="brand-badge">
+            <div class="brand-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div>
+                <h1 class="brand-title">{{ test.title }}</h1>
+                <div class="candidate-tag">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>{{ candidate_name }} ({{ candidate_roll or 'ID: ' ~ session['user_id'] }})</span>
+                    <span style="opacity: 0.4">•</span>
+                    <span>Test ID: <strong>{{ test.test_code }}</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sticky Countdown Timer -->
+        <div class="timer-container">
+            <span class="timer-label">Time Remaining</span>
+            <div class="timer-display" id="examTimer">
+                <i class="far fa-clock" style="font-size: 1.1rem;"></i>
+                <span id="timerDigits">--:--</span>
+            </div>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="header-actions">
+            <div class="save-indicator" id="saveIndicator">
+                <i class="fas fa-check-circle"></i>
+                <span id="saveStatusText">All changes saved</span>
+            </div>
+
+            {% if test.allow_calculator %}
+            <button type="button" class="btn-calc" onclick="toggleCalculator()" title="Scientific / Standard Calculator">
+                <i class="fas fa-calculator"></i> Calc
+            </button>
+            {% endif %}
+
+            <button type="button" class="btn-submit-exam" onclick="confirmAndSubmit()">
+                <i class="fas fa-paper-plane"></i> Submit Exam
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Exam Container -->
+    <div class="portal-body">
+        <!-- Center Question Stage -->
+        <main class="portal-main">
+            <!-- Question Metadata Bar -->
+            <div class="question-meta-bar">
+                <div class="q-meta-left">
+                    <span class="q-badge" id="currentQBadge">Question 1</span>
+                    <span class="q-type-badge" id="currentQType">Multiple Choice</span>
+                    <span class="q-type-badge" id="currentQTopic" style="display: none;">General</span>
+                </div>
+                <div class="q-meta-right">
+                    <span>Marks: <span class="marks-chip" id="currentQMarks">+1</span></span>
+                    {% if test.negative_marking > 0 %}
+                    <span>Negative: <span class="neg-marks-chip">-{{ test.negative_marking }}</span></span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Question Card -->
+            <div class="question-box">
+                <div class="question-text" id="questionText">
+                    Loading exam questions...
+                </div>
+
+                <!-- Answer Container (Dynamic) -->
+                <div id="answerArea">
+                    <!-- Options injected here -->
+                </div>
+            </div>
+
+            <!-- Bottom Navigation Bar -->
+            <div class="controls-bar">
+                <div class="control-group-left">
+                    <button type="button" class="btn-ctrl btn-review" id="btnReview" onclick="toggleReview()">
+                        <i class="far fa-bookmark"></i> <span id="reviewBtnText">Mark for Review</span>
+                    </button>
+                    <button type="button" class="btn-ctrl btn-clear" onclick="clearCurrentResponse()">
+                        <i class="fas fa-eraser"></i> Clear Response
+                    </button>
+                </div>
+                <div class="control-group-right">
+                    <button type="button" class="btn-ctrl" id="btnPrev" onclick="navigateQuestion(-1)">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <button type="button" class="btn-ctrl btn-next-primary" id="btnNext" onclick="navigateQuestion(1)">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Question Palette -->
+        <aside class="portal-sidebar">
+            <div class="palette-header">
+                <div class="palette-title">
+                    <span>Question Palette</span>
+                    <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);" id="qProgressText">1/{{ questions|length }}</span>
+                </div>
+                <div class="palette-legend">
+                    <div class="legend-item"><div class="legend-indicator legend-answered"></div> Answered</div>
+                    <div class="legend-item"><div class="legend-indicator legend-review"></div> Review</div>
+                    <div class="legend-item"><div class="legend-indicator legend-unanswered"></div> Unanswered</div>
+                    <div class="legend-item"><div class="legend-indicator legend-current"></div> Current</div>
+                </div>
+            </div>
+
+            <!-- Number Grid -->
+            <div class="palette-grid" id="paletteGrid">
+                <!-- Tiles injected here -->
+            </div>
+
+            <!-- Summary Status -->
+            <div class="palette-summary-card">
+                <div class="summary-row">
+                    <span>Answered</span>
+                    <span class="summary-val" style="color: #10b981;" id="countAnswered">0</span>
+                </div>
+                <div class="summary-row">
+                    <span>Marked for Review</span>
+                    <span class="summary-val" style="color: #a855f7;" id="countReview">0</span>
+                </div>
+                <div class="summary-row">
+                    <span>Not Visited / Skipped</span>
+                    <span class="summary-val" style="color: var(--text-muted);" id="countUnanswered">{{ questions|length }}</span>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Fullscreen Anti-Cheating Prompt Modal -->
+    <div class="security-modal" id="fullscreenModal">
+        <div class="security-card">
+            <div class="security-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h2 class="security-title">Proctored Examination Mode</h2>
+            <p class="security-desc">
+                This examination is monitored with active anti-cheating technology. Before proceeding, you must agree to enter locked Fullscreen Mode.
+            </p>
+            <ul class="rules-list">
+                <li><i class="fas fa-check text-success" style="color: #10b981; margin-right: 6px;"></i> Switching tabs or minimizing will record an official violation.</li>
+                <li><i class="fas fa-check text-success" style="color: #10b981; margin-right: 6px;"></i> Right-click, Copy, Paste, and Developer Tools are strictly disabled.</li>
+                <li><i class="fas fa-exclamation-triangle" style="color: #f59e0b; margin-right: 6px;"></i> Exceeding <strong>{{ test.max_warnings or 3 }} warnings</strong> will trigger immediate test termination and automatic submission.</li>
+                <li><i class="fas fa-cloud-upload-alt" style="color: #38bdf8; margin-right: 6px;"></i> All your responses are automatically saved every 10 seconds.</li>
+            </ul>
+            <button type="button" class="btn-enter-fullscreen" onclick="startExamWithFullscreen()">
+                <i class="fas fa-expand"></i> Enter Fullscreen & Start Exam
+            </button>
+        </div>
+    </div>
+
+    <!-- Violation Warning Floating Banner -->
+    <div class="violation-banner" id="violationBanner">
+        <i class="fas fa-exclamation-circle" style="font-size: 1.3rem;"></i>
+        <span id="violationMessage">Warning: Tab switch detected! Return to exam immediately.</span>
+    </div>
+
+    <!-- Optional Floating Calculator -->
+    <div class="calc-modal" id="calcModal">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span style="font-size: 0.85rem; font-weight: 700; color: #9ca3af;">Calculator</span>
+            <button onclick="toggleCalculator()" style="background: none; border: none; color: #9ca3af; cursor: pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        <input type="text" class="calc-display" id="calcDisplay" readonly value="0">
+        <div class="calc-buttons">
+            <button class="calc-btn" onclick="calcClear()">C</button>
+            <button class="calc-btn" onclick="calcInput('/')">/</button>
+            <button class="calc-btn" onclick="calcInput('*')">*</button>
+            <button class="calc-btn" onclick="calcBackspace()">⌫</button>
+            <button class="calc-btn" onclick="calcInput('7')">7</button>
+            <button class="calc-btn" onclick="calcInput('8')">8</button>
+            <button class="calc-btn" onclick="calcInput('9')">9</button>
+            <button class="calc-btn op" onclick="calcInput('-')">-</button>
+            <button class="calc-btn" onclick="calcInput('4')">4</button>
+            <button class="calc-btn" onclick="calcInput('5')">5</button>
+            <button class="calc-btn" onclick="calcInput('6')">6</button>
+            <button class="calc-btn op" onclick="calcInput('+')">+</button>
+            <button class="calc-btn" onclick="calcInput('1')">1</button>
+            <button class="calc-btn" onclick="calcInput('2')">2</button>
+            <button class="calc-btn" onclick="calcInput('3')">3</button>
+            <button class="calc-btn op" onclick="calcEquals()" style="grid-row: span 2; height: 100%; background: #10b981;">=</button>
+            <button class="calc-btn" onclick="calcInput('0')" style="grid-column: span 2;">0</button>
+            <button class="calc-btn" onclick="calcInput('.')">.</button>
+        </div>
+    </div>
+
+    <!-- Hidden Submission Form -->
+    <form id="officialSubmitForm" action="{{ url_for('submit_official_test', test_id=test.id) }}" method="POST" style="display: none;">
+        <input type="hidden" name="attempt_id" id="formAttemptId" value="{{ attempt.id }}">
+        <input type="hidden" name="answers_json" id="formAnswersJson" value="{}">
+        <input type="hidden" name="violations" id="formViolations" value="0">
+        <input type="hidden" name="time_spent_seconds" id="formTimeSpent" value="0">
+    </form>
+
+    <!-- Safe Data JSON Injection -->
+    <script id="exam-data" type="application/json">
+        {{ questions|tojson|safe }}
+    </script>
+    <script id="initial-responses" type="application/json">
+        {{ saved_responses|tojson|safe if saved_responses else '{}' }}
+    </script>
+
+    <script>
+        // Exam Global State
+        const testId = {{ test.id }};
+        const attemptId = {{ attempt.id }};
+        const durationMinutes = {{ test.duration_minutes }};
+        const maxWarnings = {{ test.max_warnings or 3 }};
+        const questions = JSON.parse(document.getElementById('exam-data').textContent);
+        const initialResponses = JSON.parse(document.getElementById('initial-responses').textContent);
+
+        let currentIndex = 0;
+        let userResponses = initialResponses.answers || {};
+        let reviewFlags = initialResponses.review_flags || {};
+        let totalViolations = {{ attempt.violations or 0 }};
+        let examStarted = false;
+        let timeRemainingSeconds = {{ remaining_seconds if remaining_seconds is defined else (test.duration_minutes * 60) }};
+        let timeSpentSeconds = {{ attempt.time_spent or 0 }};
+        let timerInterval = null;
+        let autoSaveInterval = null;
+
+        // Anti-Cheating Listeners
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('copy', e => e.preventDefault());
+        document.addEventListener('paste', e => e.preventDefault());
+        document.addEventListener('cut', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (e.key === 'F12' || (e.ctrlKey && (e.key === 'u' || e.key === 'U' || e.key === 'c' || e.key === 'v' || e.key === 'Shift'))) {
+                e.preventDefault();
+            }
+        });
+
+        // Tab Switch / Visibility Tracking
+        document.addEventListener('visibilitychange', () => {
+            if (examStarted && document.visibilityState === 'hidden') {
+                recordViolation("Tab switched or minimized");
+            }
+        });
+        window.addEventListener('blur', () => {
+            if (examStarted) {
+                recordViolation("Window lost focus");
+            }
+        });
+
+        function recordViolation(reason) {
+            totalViolations++;
+            showViolationAlert(`Security Violation (${totalViolations}/${maxWarnings}): ${reason}`);
+
+            // Post to backend live monitoring
+            fetch('/api/exam/record-violation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    test_id: testId,
+                    attempt_id: attemptId,
+                    violations: totalViolations,
+                    reason: reason
+                })
+            }).catch(console.error);
+
+            if (totalViolations >= maxWarnings) {
+                alert(`Exam Terminated! You exceeded the maximum allowed violations (${maxWarnings}). Your exam is being submitted immediately.`);
+                submitExamImmediately(true);
+            }
+        }
+
+        function showViolationAlert(msg) {
+            const banner = document.getElementById('violationBanner');
+            document.getElementById('violationMessage').textContent = msg;
+            banner.style.display = 'flex';
+            setTimeout(() => {
+                banner.style.display = 'none';
+            }, 4000);
+        }
+
+        // Fullscreen Entry
+        function startExamWithFullscreen() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => {
+                    console.log("Fullscreen request was blocked or denied:", err);
+                });
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            }
+            document.getElementById('fullscreenModal').style.display = 'none';
+            examStarted = true;
+            initExam();
+        }
+
+        // Initialize exam timers and palette
+        function initExam() {
+            renderPalette();
+            loadQuestion(0);
+
+            // Start countdown
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timeRemainingSeconds--;
+                timeSpentSeconds++;
+                updateTimerDisplay();
+
+                if (timeRemainingSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    alert("Time's up! Your exam is being submitted automatically.");
+                    submitExamImmediately(false);
+                }
+            }, 1000);
+
+            // Auto-save every 10 seconds
+            autoSaveInterval = setInterval(() => {
+                autoSaveResponses();
+            }, 10000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeRemainingSeconds / 60);
+            const seconds = timeRemainingSeconds % 60;
+            const text = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            document.getElementById('timerDigits').textContent = text;
+
+            const timerElem = document.getElementById('examTimer');
+            if (timeRemainingSeconds < 300) { // Under 5 minutes
+                timerElem.classList.add('danger');
+            } else {
+                timerElem.classList.remove('danger');
+            }
+        }
+
+        // Palette rendering
+        function renderPalette() {
+            const grid = document.getElementById('paletteGrid');
+            grid.innerHTML = '';
+
+            questions.forEach((q, idx) => {
+                const tile = document.createElement('div');
+                tile.className = 'q-tile';
+                tile.id = `palette-tile-${idx}`;
+                tile.textContent = idx + 1;
+                tile.onclick = () => loadQuestion(idx);
+
+                updateTileStatus(tile, idx);
+                grid.appendChild(tile);
+            });
+
+            updatePaletteCounts();
+        }
+
+        function updateTileStatus(tile, idx) {
+            const isAnswered = userResponses[idx] !== undefined && userResponses[idx] !== "" && userResponses[idx] !== null;
+            const isReview = !!reviewFlags[idx];
+
+            tile.classList.remove('answered', 'review', 'current');
+            if (isAnswered) tile.classList.add('answered');
+            if (isReview) tile.classList.add('review');
+            if (idx === currentIndex) tile.classList.add('current');
+        }
+
+        function updatePaletteCounts() {
+            let ans = 0;
+            let rev = 0;
+            questions.forEach((_, idx) => {
+                if (userResponses[idx] !== undefined && userResponses[idx] !== "" && userResponses[idx] !== null) ans++;
+                if (reviewFlags[idx]) rev++;
+            });
+            document.getElementById('countAnswered').textContent = ans;
+            document.getElementById('countReview').textContent = rev;
+            document.getElementById('countUnanswered').textContent = questions.length - ans;
+            document.getElementById('qProgressText').textContent = `${currentIndex + 1}/${questions.length}`;
+        }
+
+        // Load Question
+        function loadQuestion(idx) {
+            if (idx < 0 || idx >= questions.length) return;
+            currentIndex = idx;
+
+            const q = questions[idx];
+            document.getElementById('currentQBadge').textContent = `Question ${idx + 1}`;
+            document.getElementById('currentQType').textContent = (q.type || 'MCQ').replace('_', ' ');
+            document.getElementById('currentQMarks').textContent = `+${q.marks || 1}`;
+
+            if (q.topic) {
+                const tBadge = document.getElementById('currentQTopic');
+                tBadge.textContent = q.topic;
+                tBadge.style.display = 'inline-block';
+            } else {
+                document.getElementById('currentQTopic').style.display = 'none';
+            }
+
+            document.getElementById('questionText').textContent = q.question;
+
+            // Render Answer Component
+            const container = document.getElementById('answerArea');
+            container.innerHTML = '';
+
+            const currentAns = userResponses[idx];
+            const qType = (q.type || 'mcq').toLowerCase();
+
+            if (qType === 'mcq' || qType === 'true_false' || (q.options && q.options.length > 0)) {
+                const list = document.createElement('div');
+                list.className = 'options-list';
+
+                const opts = q.options || (qType === 'true_false' ? ['True', 'False'] : []);
+                opts.forEach((optText, oIdx) => {
+                    const letter = String.fromCharCode(65 + oIdx);
+                    const item = document.createElement('div');
+                    item.className = 'option-item';
+                    if (currentAns === letter || currentAns === optText) {
+                        item.classList.add('selected');
+                    }
+
+                    item.innerHTML = `
+                        <div class="option-radio"><div class="option-radio-dot"></div></div>
+                        <div class="option-label-letter">${letter}.</div>
+                        <div class="option-content">${optText}</div>
+                    `;
+
+                    item.onclick = () => {
+                        document.querySelectorAll('.option-item').forEach(el => el.classList.remove('selected'));
+                        item.classList.add('selected');
+                        userResponses[currentIndex] = letter;
+                        onAnswerUpdated();
+                    };
+
+                    list.appendChild(item);
+                });
+                container.appendChild(list);
+            } else if (qType === 'short_answer') {
+                const txt = document.createElement('textarea');
+                txt.className = 'text-answer-input';
+                txt.placeholder = 'Type your comprehensive answer here...';
+                txt.value = currentAns || '';
+                txt.oninput = (e) => {
+                    userResponses[currentIndex] = e.target.value;
+                    onAnswerUpdated();
+                };
+                container.appendChild(txt);
+            } else {
+                // Fill in the blanks / numerical
+                const inp = document.createElement('input');
+                inp.type = qType === 'numerical' ? 'number' : 'text';
+                inp.step = 'any';
+                inp.className = 'text-answer-input';
+                inp.placeholder = qType === 'numerical' ? 'Enter numerical answer...' : 'Fill in the blank response...';
+                inp.value = currentAns || '';
+                inp.oninput = (e) => {
+                    userResponses[currentIndex] = e.target.value;
+                    onAnswerUpdated();
+                };
+                container.appendChild(inp);
+            }
+
+            // Update Review button state
+            const revBtn = document.getElementById('btnReview');
+            const revText = document.getElementById('reviewBtnText');
+            if (reviewFlags[idx]) {
+                revBtn.classList.add('active');
+                revText.textContent = 'Marked for Review';
+            } else {
+                revBtn.classList.remove('active');
+                revText.textContent = 'Mark for Review';
+            }
+
+            // Update Navigation Buttons
+            document.getElementById('btnPrev').disabled = idx === 0;
+            const btnNext = document.getElementById('btnNext');
+            if (idx === questions.length - 1) {
+                btnNext.innerHTML = 'Review Summary <i class="fas fa-flag-checkered"></i>';
+            } else {
+                btnNext.innerHTML = 'Next <i class="fas fa-chevron-right"></i>';
+            }
+
+            // Re-highlight palette tiles
+            document.querySelectorAll('.q-tile').forEach((t, i) => updateTileStatus(t, i));
+            updatePaletteCounts();
+        }
+
+        function navigateQuestion(step) {
+            const nextIdx = currentIndex + step;
+            if (nextIdx >= 0 && nextIdx < questions.length) {
+                loadQuestion(nextIdx);
+            } else if (nextIdx >= questions.length) {
+                confirmAndSubmit();
+            }
+        }
+
+        function onAnswerUpdated() {
+            const tile = document.getElementById(`palette-tile-${currentIndex}`);
+            if (tile) updateTileStatus(tile, currentIndex);
+            updatePaletteCounts();
+            indicateSaving();
+        }
+
+        function toggleReview() {
+            reviewFlags[currentIndex] = !reviewFlags[currentIndex];
+            const revBtn = document.getElementById('btnReview');
+            const revText = document.getElementById('reviewBtnText');
+            if (reviewFlags[currentIndex]) {
+                revBtn.classList.add('active');
+                revText.textContent = 'Marked for Review';
+            } else {
+                revBtn.classList.remove('active');
+                revText.textContent = 'Mark for Review';
+            }
+            const tile = document.getElementById(`palette-tile-${currentIndex}`);
+            if (tile) updateTileStatus(tile, currentIndex);
+            updatePaletteCounts();
+            autoSaveResponses();
+        }
+
+        function clearCurrentResponse() {
+            delete userResponses[currentIndex];
+            loadQuestion(currentIndex);
+            autoSaveResponses();
+        }
+
+        function indicateSaving() {
+            const ind = document.getElementById('saveIndicator');
+            const text = document.getElementById('saveStatusText');
+            ind.classList.add('saving');
+            text.textContent = 'Saving...';
+            setTimeout(() => {
+                autoSaveResponses();
+            }, 800);
+        }
+
+        // Auto Save to Server
+        function autoSaveResponses() {
+            const ind = document.getElementById('saveIndicator');
+            const text = document.getElementById('saveStatusText');
+
+            fetch('/api/exam/save-response', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    test_id: testId,
+                    attempt_id: attemptId,
+                    answers: userResponses,
+                    review_flags: reviewFlags,
+                    current_index: currentIndex,
+                    time_spent: timeSpentSeconds
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                ind.classList.remove('saving');
+                text.textContent = 'All changes saved';
+                if (data && data.test_stopped) {
+                    clearInterval(timerInterval);
+                    clearInterval(autoSaveInterval);
+                    alert("Notice: This examination has been stopped by the instructor. Your responses are being submitted now.");
+                    submitExamImmediately(true);
+                }
+            })
+            .catch(err => {
+                console.error("Auto-save sync failed:", err);
+            });
+        }
+
+        // Submission Dialog
+        function confirmAndSubmit() {
+            let ansCount = 0;
+            questions.forEach((_, idx) => {
+                if (userResponses[idx] !== undefined && userResponses[idx] !== "" && userResponses[idx] !== null) ansCount++;
+            });
+            const unansCount = questions.length - ansCount;
+
+            const msg = `Exam Submission Confirmation:\n\n` +
+                        `• Answered: ${ansCount}\n` +
+                        `• Unanswered / Skipped: ${unansCount}\n` +
+                        `• Total Questions: ${questions.length}\n\n` +
+                        `Are you sure you want to finalize and submit your examination? You cannot make changes after submission.`;
+
+            if (confirm(msg)) {
+                submitExamImmediately(false);
+            }
+        }
+
+        function submitExamImmediately(isForce) {
+            clearInterval(timerInterval);
+            clearInterval(autoSaveInterval);
+
+            document.getElementById('formAnswersJson').value = JSON.stringify(userResponses);
+            document.getElementById('formViolations').value = totalViolations;
+            document.getElementById('formTimeSpent').value = timeSpentSeconds;
+            document.getElementById('officialSubmitForm').submit();
+        }
+
+        // Calculator functions
+        let calcVal = '';
+        function toggleCalculator() {
+            const modal = document.getElementById('calcModal');
+            modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+        }
+        function calcInput(char) {
+            calcVal += char;
+            document.getElementById('calcDisplay').value = calcVal;
+        }
+        function calcClear() {
+            calcVal = '';
+            document.getElementById('calcDisplay').value = '0';
+        }
+        function calcBackspace() {
+            calcVal = calcVal.slice(0, -1);
+            document.getElementById('calcDisplay').value = calcVal || '0';
+        }
+        function calcEquals() {
+            try {
+                // Safe numeric evaluation
+                const sanitized = calcVal.replace(/[^0-9+\-*/.]/g, '');
+                const res = Function(`'use strict'; return (${sanitized})`)();
+                calcVal = String(res);
+                document.getElementById('calcDisplay').value = calcVal;
+            } catch(e) {
+                document.getElementById('calcDisplay').value = 'Error';
+                calcVal = '';
+            }
+        }
+    </script>
+</body>
+</html>

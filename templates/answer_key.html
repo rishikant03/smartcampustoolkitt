@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Answer Key - AI Question Paper Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="{{ url_for('dashboard') }}" class="nav-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#10b981;"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+            <span>Smart Campus Toolkit</span>
+        </a>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+            <a href="{{ url_for('index') }}" class="nav-link active">Question Papers</a>
+            {% if session.get('role') == 'teacher' %}
+                <a href="{{ url_for('teacher_dashboard') }}" class="nav-link">Teacher Portal</a>
+            {% else %}
+                <a href="{{ url_for('student_dashboard') }}" class="nav-link">Student Portal</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="nav-btn">Logout ({{ session.username }})</a>
+        </div>
+    </nav>
+    <div class="container preview-container">
+        <header class="preview-header">
+            <div class="actions-left">
+                <a href="{{ url_for('preview', paper_id=paper_id) }}" class="btn btn-secondary" style="border: 2px solid #000000; font-weight: 700;">&larr; Back to Question Paper</a>
+            </div>
+            <div class="actions-right">
+                <a href="{{ url_for('download', paper_id=paper_id, file_type='answer_key') }}" class="btn btn-success" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800;">Download Answer Key PDF</a>
+            </div>
+        </header>
+
+        <main>
+            <div class="paper-preview answer-key">
+                <div class="paper-header">
+                    <h2>ANSWER KEY: {{ settings.exam_name | upper }}</h2>
+                </div>
+                
+                <hr class="paper-divider">
+
+                {% set q_num = namespace(value=1) %}
+
+                {% if data.mcqs %}
+                    <div class="paper-section">
+                        <h4>SECTION A — MCQs Correct Answers</h4>
+                        <div class="answer-grid">
+                        {% for q in data.mcqs %}
+                            <div class="answer-block">
+                                <strong>{{ q_num.value }}.</strong> {{ q.correct_answer }}
+                            </div>
+                            {% set q_num.value = q_num.value + 1 %}
+                        {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if data.short_questions %}
+                    <div class="paper-section">
+                        <h4>SECTION B — Short Answer Expected Points</h4>
+                        {% for q in data.short_questions %}
+                            <div class="answer-block">
+                                <p><strong>{{ q_num.value }}.</strong> {{ q.expected_answer }}</p>
+                            </div>
+                            {% set q_num.value = q_num.value + 1 %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if data.long_questions %}
+                    <div class="paper-section">
+                        <h4>SECTION C — Long Answer Key Points</h4>
+                        {% for q in data.long_questions %}
+                            <div class="answer-block">
+                                <p><strong>{{ q_num.value }}.</strong> {{ q.expected_points }}</p>
+                            </div>
+                            {% set q_num.value = q_num.value + 1 %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+</body>
+</html>

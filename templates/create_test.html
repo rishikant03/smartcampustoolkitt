@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Online Test - Teacher Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body { background: #ffffff; color: #000000; }
+        .creator-container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+        
+        .method-tabs { display: flex; background: #ffffff; border-radius: 14px; padding: 6px; margin-bottom: 25px; gap: 6px; border: 2px solid #000000; }
+        .method-tab { flex: 1; text-align: center; padding: 14px; border-radius: 10px; cursor: pointer; font-weight: 600; color: #000000; transition: 0.25s; font-size: 0.95rem; }
+        .method-tab.active { background: #10b981; color: #ffffff; font-weight: 700; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+
+        .method-section { display: none; }
+        .method-section.active { display: block; animation: fadeIn 0.3s ease; }
+
+        .config-box { background: #ffffff; border: 2px solid #000000; border-radius: 20px; padding: 30px; margin-bottom: 25px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05); color: #000000; }
+        .config-box h3 { color: #000000 !important; font-weight: 700; }
+        .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
+
+        .q-card { background: #ffffff; border: 2px solid #000000; border-radius: 14px; padding: 20px; margin-bottom: 15px; position: relative; color: #000000; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); }
+        .q-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+
+        .creator-container input, .creator-container select, .creator-container textarea {
+            background: #ffffff !important;
+            border: 1.5px solid #000000 !important;
+            color: #000000 !important;
+            border-radius: 10px;
+        }
+        .creator-container input:focus, .creator-container select:focus, .creator-container textarea:focus {
+            border-color: #10b981 !important;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25) !important;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid-2 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar glass">
+    <div class="nav-brand">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981;"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+        <span>Smart Campus Toolkit</span>
+    </div>
+    <div class="nav-links">
+        <a href="{{ url_for('teacher_dashboard') }}" class="nav-link">Teacher Dashboard</a>
+        <a href="{{ url_for('teacher_dashboard') }}#previous-results" class="nav-link">Previous Results</a>
+        <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
+        <div class="nav-user">
+            <span style="font-weight: 700;">Teacher: {{ session['username'] }}</span>
+            <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="creator-container">
+    <div style="margin-bottom: 25px;">
+        <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 6px;">🛠️ Create Online Examination</h1>
+        <p style="color: var(--text-muted);">Choose one of the three options below to craft and publish a secure online test.</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages" style="margin-bottom: 25px;">
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="method-tabs">
+        <div class="method-tab active" onclick="switchMethod('book')">📖 Option 1: From Book PDF (AI)</div>
+        <div class="method-tab" onclick="switchMethod('bank')">📚 Option 2: From Question Bank</div>
+        <div class="method-tab" onclick="switchMethod('manual')">✍️ Option 3: Manual Test Builder</div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- OPTION 1: FROM UPLOADED BOOK PDF (AI)      -->
+    <!-- ========================================== -->
+    <div id="method-book" class="method-section active">
+        <form action="{{ url_for('teacher_create_test_submit') }}" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="creation_mode" value="book">
+            
+            <div class="config-box">
+                <h3 style="margin-bottom: 15px; color: #f8fafc;">1. Upload Book PDF</h3>
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label for="book_pdf" style="display: block; margin-bottom: 8px; color: var(--text-muted);">Select Textbook / Syllabus PDF</label>
+                    <input type="file" id="book_pdf" name="book_pdf" accept=".pdf" required style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px dashed var(--primary); border-radius: 12px; color: white;">
+                    <small style="color: var(--text-muted); display: block; margin-top: 6px;">AI will parse chapters, topics, and automatically synthesize exam questions.</small>
+                </div>
+            </div>
+
+            <div class="config-box">
+                <h3 style="margin-bottom: 20px; color: #f8fafc;">2. Examination Settings & Questions Allocation</h3>
+                
+                <div class="form-grid-2" style="margin-bottom: 20px;">
+                    <div>
+                        <label for="title_b" style="display: block; margin-bottom: 6px; font-size: 0.9rem; color: var(--text-muted);">Test Title</label>
+                        <input type="text" id="title_b" name="title" required placeholder="e.g. Mid-Semester Exam - Unit 1 to 4" style="width: 100%; padding: 12px; border-radius: 12px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                    <div>
+                        <label for="subject_b" style="display: block; margin-bottom: 6px; font-size: 0.9rem; color: var(--text-muted);">Subject</label>
+                        <input type="text" id="subject_b" name="subject" required placeholder="e.g. Advanced Physics" style="width: 100%; padding: 12px; border-radius: 12px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                </div>
+
+                <div class="form-grid-3" style="margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-muted);">MCQs Count</label>
+                        <input type="number" name="mcq_count" value="5" min="0" max="50" style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-muted);">True/False Count</label>
+                        <input type="number" name="tf_count" value="2" min="0" max="30" style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-muted);">Short Answer Count</label>
+                        <input type="number" name="short_count" value="2" min="0" max="20" style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-muted);">Numerical Count</label>
+                        <input type="number" name="numerical_count" value="1" min="0" max="20" style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                </div>
+
+                <div class="form-grid-3" style="margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-muted);">Duration (Mins)</label>
+                        <input type="number" name="duration_mins" value="60" min="5" max="300" style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-muted);">Passing Marks %</label>
+                        <input type="number" name="passing_marks" value="40" min="1" max="100" style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-muted);">Negative Marking</label>
+                        <select name="negative_marking" style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                            <option value="0.0">None (0.0)</option>
+                            <option value="0.25">0.25 deduction per wrong answer</option>
+                            <option value="0.33">0.33 deduction (1/3rd)</option>
+                            <option value="0.5">0.50 deduction (Half mark)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-muted);">Max Tab Warnings</label>
+                        <input type="number" name="max_warnings" value="3" min="1" max="10" style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-muted);">
+                        <input type="checkbox" name="shuffle_questions" value="1" checked style="accent-color: var(--primary); width: 18px; height: 18px;">
+                        Shuffle Questions for each student
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-muted);">
+                        <input type="checkbox" name="allow_calculator" value="1" style="accent-color: var(--primary); width: 18px; height: 18px;">
+                        Allow Scientific Calculator
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-large" style="width: 100%; padding: 16px; font-size: 1.1rem;">
+                ⚡ Generate AI Test & Publish Exam
+            </button>
+        </form>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- OPTION 2: FROM EXISTING QUESTION BANK      -->
+    <!-- ========================================== -->
+    <div id="method-bank" class="method-section">
+        <form action="{{ url_for('teacher_create_test_submit') }}" method="POST">
+            <input type="hidden" name="creation_mode" value="bank">
+            
+            <div class="config-box">
+                <h3 style="margin-bottom: 15px; color: #f8fafc;">Select Generated Question Paper / Bank</h3>
+                {% if papers %}
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label for="paper_id" style="display: block; margin-bottom: 8px; color: var(--text-muted);">Choose Source Paper</label>
+                    <select name="paper_id" id="paper_id" required style="width: 100%; padding: 12px 14px; border-radius: 12px; background: rgba(15, 23, 42, 0.7); color: white; border: 1px solid var(--border);">
+                        {% for p in papers %}
+                        <option value="{{ p.id }}">{{ p.subject }} - {{ p.exam_name }} ({{ p.filename }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% else %}
+                <p style="color: var(--text-muted); margin-bottom: 15px;">No generated question papers found in database.</p>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Upload & Generate a Paper First &rarr;</a>
+                {% endif %}
+
+                <div class="form-grid-2" style="margin-top: 20px;">
+                    <div>
+                        <label for="title_k" style="display: block; margin-bottom: 6px; font-size: 0.9rem; color: var(--text-muted);">Exam Title</label>
+                        <input type="text" id="title_k" name="title" required placeholder="e.g. Unit 3 Comprehensive Test" style="width: 100%; padding: 12px; border-radius: 12px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                    <div>
+                        <label for="duration_k" style="display: block; margin-bottom: 6px; font-size: 0.9rem; color: var(--text-muted);">Duration (Minutes)</label>
+                        <input type="number" id="duration_k" name="duration_mins" value="60" min="5" max="300" style="width: 100%; padding: 12px; border-radius: 12px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                </div>
+
+                <div class="form-grid-2" style="margin-top: 15px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.9rem; color: var(--text-muted);">Negative Marking</label>
+                        <select name="negative_marking" style="width: 100%; padding: 12px; border-radius: 12px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                            <option value="0.0">None (0.0)</option>
+                            <option value="0.25">0.25 deduction</option>
+                            <option value="0.33">0.33 deduction</option>
+                            <option value="0.5">0.50 deduction</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.9rem; color: var(--text-muted);">Max Tab Warnings</label>
+                        <input type="number" name="max_warnings" value="3" min="1" max="10" style="width: 100%; padding: 12px; border-radius: 12px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-large" style="width: 100%; padding: 16px; font-size: 1.1rem;">
+                🚀 Create & Publish Test from Bank
+            </button>
+        </form>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- OPTION 3: MANUAL TEST BUILDER              -->
+    <!-- ========================================== -->
+    <div id="method-manual" class="method-section">
+        <form action="{{ url_for('teacher_create_test_submit') }}" method="POST" id="manualForm">
+            <input type="hidden" name="creation_mode" value="manual">
+            <input type="hidden" name="manual_questions_json" id="manualQuestionsJson">
+
+            <div class="config-box">
+                <h3 style="margin-bottom: 20px; color: #f8fafc;">Test Details & Rules</h3>
+                <div class="form-grid-2" style="margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.9rem; color: var(--text-muted);">Test Title</label>
+                        <input type="text" name="title" required placeholder="e.g. Weekly Quiz: Data Structures" style="width: 100%; padding: 12px; border-radius: 12px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.9rem; color: var(--text-muted);">Subject</label>
+                        <input type="text" name="subject" required placeholder="e.g. Computer Science" style="width: 100%; padding: 12px; border-radius: 12px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                </div>
+
+                <div class="form-grid-3">
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-muted);">Duration (Minutes)</label>
+                        <input type="number" name="duration_mins" value="45" min="5" max="300" style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-muted);">Negative Marking</label>
+                        <select name="negative_marking" style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                            <option value="0.0">None</option>
+                            <option value="0.25">0.25</option>
+                            <option value="0.5">0.50</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-muted);">Max Tab Warnings</label>
+                        <input type="number" name="max_warnings" value="3" min="1" max="10" style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); color: white; border: 1px solid var(--border);">
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; color: #f8fafc;">Questions Builder</h3>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn btn-secondary" onclick="addManualQuestion('mcq')" style="font-size: 0.85rem; padding: 6px 12px;">+ Add MCQ</button>
+                        <button type="button" class="btn btn-secondary" onclick="addManualQuestion('true_false')" style="font-size: 0.85rem; padding: 6px 12px;">+ Add True/False</button>
+                        <button type="button" class="btn btn-secondary" onclick="addManualQuestion('short')" style="font-size: 0.85rem; padding: 6px 12px;">+ Add Short/Numerical</button>
+                    </div>
+                </div>
+
+                <div id="questionsContainer">
+                    <!-- Dynamic Question Cards -->
+                </div>
+            </div>
+
+            <button type="button" class="btn btn-primary btn-large" style="width: 100%; padding: 16px; font-size: 1.1rem;" onclick="submitManualTest()">
+                🚀 Save & Publish Manual Exam
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function switchMethod(method) {
+        document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.method-section').forEach(s => s.classList.remove('active'));
+        
+        event.target.classList.add('active');
+        document.getElementById('method-' + method).classList.add('active');
+    }
+
+    let qCounter = 0;
+    const manualQuestions = [];
+
+    function addManualQuestion(type) {
+        qCounter++;
+        const container = document.getElementById('questionsContainer');
+        const card = document.createElement('div');
+        card.className = 'q-card';
+        card.id = 'qcard_' + qCounter;
+
+        let optionsHtml = '';
+        if (type === 'mcq') {
+            optionsHtml = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                    <input type="text" placeholder="Option A" class="opt-a" required style="padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: white;">
+                    <input type="text" placeholder="Option B" class="opt-b" required style="padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: white;">
+                    <input type="text" placeholder="Option C" class="opt-c" required style="padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: white;">
+                    <input type="text" placeholder="Option D" class="opt-d" required style="padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: white;">
+                </div>
+                <input type="text" placeholder="Correct Answer (must match one option exactly)" class="opt-correct" required style="width: 100%; padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: white; margin-bottom: 8px;">
+            `;
+        } else if (type === 'true_false') {
+            optionsHtml = `
+                <div style="margin-bottom: 12px;">
+                    <label style="margin-right: 15px; color: var(--text-muted);"><input type="radio" name="tf_ans_${qCounter}" value="True" checked> True</label>
+                    <label style="color: var(--text-muted);"><input type="radio" name="tf_ans_${qCounter}" value="False"> False</label>
+                </div>
+            `;
+        } else {
+            optionsHtml = `
+                <input type="text" placeholder="Expected Answer" class="opt-correct" required style="width: 100%; padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: white; margin-bottom: 8px;">
+            `;
+        }
+
+        card.innerHTML = `
+            <div class="q-card-header">
+                <strong>Question #${qCounter} (${type.toUpperCase()})</strong>
+                <button type="button" onclick="document.getElementById('qcard_${qCounter}').remove()" style="background: none; border: none; color: #f87171; cursor: pointer; font-size: 0.85rem;">Remove ✗</button>
+            </div>
+            <input type="hidden" class="q-type" value="${type}">
+            <input type="text" placeholder="Enter Question Prompt" class="q-prompt" required style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: white; margin-bottom: 12px;">
+            ${optionsHtml}
+            <input type="text" placeholder="Explanation (optional)" class="q-explanation" style="width: 100%; padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: white;">
+        `;
+        container.appendChild(card);
+    }
+
+    function submitManualTest() {
+        const cards = document.querySelectorAll('.q-card');
+        if (cards.length === 0) {
+            alert('Please add at least one question before publishing.');
+            return;
+        }
+
+        const collected = [];
+        let idx = 1;
+        cards.forEach(card => {
+            const type = card.querySelector('.q-type').value;
+            const prompt = card.querySelector('.q-prompt').value;
+            const explanation = card.querySelector('.q-explanation').value || '';
+            let options = [];
+            let correct = '';
+
+            if (type === 'mcq') {
+                options = [
+                    card.querySelector('.opt-a').value,
+                    card.querySelector('.opt-b').value,
+                    card.querySelector('.opt-c').value,
+                    card.querySelector('.opt-d').value
+                ];
+                correct = card.querySelector('.opt-correct').value;
+            } else if (type === 'true_false') {
+                options = ['True', 'False'];
+                const sel = card.querySelector('input[type="radio"]:checked');
+                correct = sel ? sel.value : 'True';
+            } else {
+                correct = card.querySelector('.opt-correct').value;
+            }
+
+            collected.push({
+                id: idx,
+                type: type,
+                topic: 'General',
+                question: prompt,
+                options: options,
+                correct_answer: correct,
+                explanation: explanation,
+                marks: 1.0
+            });
+            idx++;
+        });
+
+        document.getElementById('manualQuestionsJson').value = JSON.stringify(collected);
+        document.getElementById('manualForm').submit();
+    }
+
+    // Default 1 MCQ
+    window.onload = function() {
+        addManualQuestion('mcq');
+    };
+</script>
+
+</body>
+</html>

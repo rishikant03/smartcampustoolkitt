@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview Question Paper - AI Question Paper Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="{{ url_for('dashboard') }}" class="nav-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#10b981;"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+            <span>Smart Campus Toolkit</span>
+        </a>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+            <a href="{{ url_for('index') }}" class="nav-link active">Question Papers</a>
+            {% if session.get('role') == 'teacher' %}
+                <a href="{{ url_for('teacher_dashboard') }}" class="nav-link">Teacher Portal</a>
+            {% else %}
+                <a href="{{ url_for('student_dashboard') }}" class="nav-link">Student Portal</a>
+            {% endif %}
+            <div class="nav-user">
+                <span>{{ session['username'] }}</span>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; border: 2px solid #000000;">Logout</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container preview-container">
+        <header class="preview-header">
+            <div class="actions-left" style="display: flex; gap: 10px;">
+                <a href="{{ url_for('index') }}" class="btn btn-secondary" style="border: 2px solid #000000; font-weight: 700;">Create New</a>
+                {% if session.get('role') == 'teacher' %}
+                <form action="{{ url_for('create_exam', paper_id=paper_id) }}" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-primary" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800;">Convert to Online Exam</button>
+                </form>
+                {% endif %}
+            </div>
+            <div class="actions-right" style="display: flex; gap: 10px;">
+                <a href="{{ url_for('answer_key', paper_id=paper_id) }}" class="btn btn-primary" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800;">View Answer Key</a>
+                <a href="{{ url_for('download', paper_id=paper_id, file_type='question_paper') }}" class="btn btn-success" style="background: #000000; border: 2px solid #000000; color: #ffffff; font-weight: 800;">Download PDF</a>
+            </div>
+        </header>
+
+        <main>
+            <div class="paper-preview">
+                <div class="paper-header">
+                    <h2>{{ settings.exam_name | upper }}</h2>
+                    <h3>QUESTION PAPER</h3>
+                    <div class="paper-meta">
+                        <span><strong>Subject:</strong> {{ settings.subject }}</span>
+                        <span><strong>Chapter:</strong> {{ settings.chapter }}</span>
+                    </div>
+                    <div class="paper-meta">
+                        <span><strong>Time:</strong> {{ settings.duration }}</span>
+                        <span><strong>Maximum Marks:</strong> {{ settings.total_marks }}</span>
+                    </div>
+                </div>
+                
+                <hr class="paper-divider">
+
+                {% set q_num = namespace(value=1) %}
+
+                {% if data.mcqs %}
+                    <div class="paper-section">
+                        <h4>SECTION A — Multiple Choice Questions</h4>
+                        {% for q in data.mcqs %}
+                            <div class="question-block">
+                                <p class="question-text"><strong>{{ q_num.value }}.</strong> {{ q.question }} <span class="marks">({{ q.marks }} Marks)</span></p>
+                                <ol class="options-list" type="A">
+                                    {% for opt in q.options %}
+                                        <li>{{ opt }}</li>
+                                    {% endfor %}
+                                </ol>
+                            </div>
+                            {% set q_num.value = q_num.value + 1 %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if data.short_questions %}
+                    <div class="paper-section">
+                        <h4>SECTION B — Short Answer Questions</h4>
+                        {% for q in data.short_questions %}
+                            <div class="question-block">
+                                <p class="question-text"><strong>{{ q_num.value }}.</strong> {{ q.question }} <span class="marks">({{ q.marks }} Marks)</span></p>
+                                <div class="writing-space short"></div>
+                            </div>
+                            {% set q_num.value = q_num.value + 1 %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if data.long_questions %}
+                    <div class="paper-section">
+                        <h4>SECTION C — Long Answer Questions</h4>
+                        {% for q in data.long_questions %}
+                            <div class="question-block">
+                                <p class="question-text"><strong>{{ q_num.value }}.</strong> {{ q.question }} <span class="marks">({{ q.marks }} Marks)</span></p>
+                                <div class="writing-space long"></div>
+                            </div>
+                            {% set q_num.value = q_num.value + 1 %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+</body>
+</html>

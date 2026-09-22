@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Test: {{ mock.subject }} - AI Student Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #ffffff;
+            color: #000000;
+            min-height: 100vh;
+        }
+
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 30px;
+            background: #ffffff;
+            border-bottom: 2px solid #000000;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .timer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            padding: 8px 18px;
+            background: #000000;
+            border: 2px solid #000000;
+            color: #10b981;
+            border-radius: 12px;
+            font-family: monospace;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+        }
+
+        .timer-urgent {
+            background: #ef4444;
+            color: #ffffff;
+            border-color: #ef4444;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+
+        .test-layout {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 30px;
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .question-card {
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        }
+
+        .q-number {
+            font-size: 0.85rem;
+            color: #10b981;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .q-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            line-height: 1.5;
+            margin-bottom: 25px;
+            color: #000000;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 16px 20px;
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 14px;
+            margin-bottom: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #000000;
+            font-weight: 600;
+        }
+
+        .option-item:hover {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .option-item input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #10b981;
+        }
+
+        .option-item.selected {
+            border-color: #10b981;
+            background: #f0fdf4;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .sidebar-card {
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 20px;
+            padding: 25px;
+            position: sticky;
+            top: 100px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        }
+
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .palette-btn {
+            padding: 10px;
+            border-radius: 10px;
+            background: #ffffff;
+            color: #000000;
+            font-weight: 700;
+            text-align: center;
+            cursor: pointer;
+            border: 2px solid #000000;
+            transition: 0.2s;
+        }
+
+        .palette-btn.active {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .palette-btn.answered {
+            background: #10b981;
+            border-color: #000000;
+            color: #ffffff;
+            font-weight: 800;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+        }
+
+        @media (max-width: 850px) {
+            .test-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header class="test-header">
+    <div>
+        <h2 style="font-size: 1.2rem; margin: 0; color: #000000;">{{ mock.subject }} <span style="font-size: 0.85rem; color: #10b981; font-weight: 700;">({{ mock.difficulty }} Mock Test)</span></h2>
+        <small style="color: #64748b; font-weight: 600;">Question {{ questions|length }} Total</small>
+    </div>
+
+    <div class="timer-badge" id="timerBadge">
+        ⏳ <span id="timeDisplay">--:--</span>
+    </div>
+
+    <div>
+        <button type="button" class="btn" style="background: #10b981; color: #ffffff; border: 2px solid #000000; font-weight: 800; padding: 10px 20px; border-radius: 10px; cursor: pointer;" onclick="submitMockTest()">Submit Test</button>
+    </div>
+</header>
+
+<form id="mockTestForm" action="{{ url_for('mock_test_submit', mock_id=mock.id) }}" method="POST">
+    <div class="test-layout">
+        <div class="main-content">
+            {% for q in questions %}
+            {% set q_idx = loop.index0 %}
+            <div class="question-card question-pane" id="pane-{{ q_idx }}" style="{% if q_idx != 0 %}display:none;{% endif %}">
+                <div class="q-number">Question {{ q_idx + 1 }} of {{ questions|length }}</div>
+                <div class="q-text">{{ q.question }}</div>
+
+                <div class="options-list">
+                    {% for opt in q.options %}
+                    <label class="option-item" onclick="selectOption({{ q_idx }}, this)">
+                        <input type="radio" name="q_{{ q.id }}" value="{{ opt }}" onchange="updatePalette({{ q_idx }})">
+                        <span>{{ opt }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div style="display: flex; justify-content: space-between; margin-top: 30px; border-top: 2px solid #000000; padding-top: 20px;">
+                    {% if loop.index0 > 0 %}
+                    <button type="button" class="btn btn-secondary" style="border: 2px solid #000000; font-weight: 700;" onclick="showQuestion({{ loop.index0 - 1 }})">&larr; Previous</button>
+                    {% else %}
+                    <div></div>
+                    {% endif %}
+
+                    {% if loop.index0 < questions|length - 1 %}
+                    <button type="button" class="btn btn-primary" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800;" onclick="showQuestion({{ loop.index0 + 1 }})">Next &rarr;</button>
+                    {% else %}
+                    <button type="button" class="btn btn-success" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800;" onclick="submitMockTest()">Review & Submit</button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <aside>
+            <div class="sidebar-card">
+                <h4 style="margin: 0 0 10px 0; color: #000000; font-weight: 800;">Question Palette</h4>
+                <small style="color: #64748b; display: block; margin-bottom: 10px; font-weight: 600;">Click any number to jump to question:</small>
+
+                <div class="palette-grid">
+                    {% for q in questions %}
+                    <div class="palette-btn {% if loop.index0 == 0 %}active{% endif %}" id="pal-{{ loop.index0 }}" onclick="showQuestion({{ loop.index0 }})">
+                        {{ loop.index }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div style="margin-top: 25px; border-top: 2px solid #000000; padding-top: 15px; font-size: 0.85rem; color: #000000; font-weight: 700;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom: 8px;">
+                        <span style="display:inline-block; width:14px; height:14px; border-radius:3px; background:#10b981; border: 1px solid #000000;"></span>
+                        Answered
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="display:inline-block; width:14px; height:14px; border-radius:3px; background:#ffffff; border: 2px solid #000000;"></span>
+                        Unanswered
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+</form>
+
+<script>
+    let currentIdx = 0;
+    const totalQuestions = {{ questions|length }};
+    let timeLeft = {{ time_left }};
+
+    function showQuestion(idx) {
+        document.querySelectorAll('.question-pane').forEach(p => p.style.display = 'none');
+        const target = document.getElementById('pane-' + idx);
+        if (target) {
+            target.style.display = 'block';
+            document.querySelectorAll('.palette-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('pal-' + idx).classList.add('active');
+            currentIdx = idx;
+        }
+    }
+
+    function selectOption(qIdx, labelEl) {
+        const pane = document.getElementById('pane-' + qIdx);
+        pane.querySelectorAll('.option-item').forEach(l => l.classList.remove('selected'));
+        labelEl.classList.add('selected');
+        const radio = labelEl.querySelector('input[type="radio"]');
+        if (radio) {
+            radio.checked = true;
+            updatePalette(qIdx);
+        }
+    }
+
+    function updatePalette(qIdx) {
+        const pane = document.getElementById('pane-' + qIdx);
+        const answered = pane.querySelector('input[type="radio"]:checked');
+        const palBtn = document.getElementById('pal-' + qIdx);
+        if (answered) {
+            palBtn.classList.add('answered');
+        }
+    }
+
+    function submitMockTest() {
+        if (confirm('Are you sure you want to submit your mock test? Your answers will be evaluated immediately.')) {
+            document.getElementById('mockTestForm').submit();
+        }
+    }
+
+    // Timer Countdown
+    function startTimer() {
+        const timerBadge = document.getElementById('timerBadge');
+        const timeDisplay = document.getElementById('timeDisplay');
+
+        const interval = setInterval(() => {
+            if (timeLeft <= 0) {
+                clearInterval(interval);
+                timeDisplay.textContent = '00:00';
+                alert('Time has expired! Submitting your mock test now.');
+                document.getElementById('mockTestForm').submit();
+                return;
+            }
+
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            timeDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+            if (timeLeft <= 120) {
+                timerBadge.classList.add('timer-urgent');
+            }
+
+            timeLeft--;
+        }, 1000);
+    }
+
+    window.onload = startTimer;
+</script>
+
+</body>
+</html>

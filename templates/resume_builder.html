@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Builder - AI Career Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        .builder-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            height: calc(100vh - 120px);
+        }
+        
+        @media (max-width: 900px) {
+            .builder-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+        }
+        
+        .editor-pane {
+            overflow-y: auto;
+            padding-right: 10px;
+            max-height: 100%;
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        }
+        
+        .preview-pane {
+            position: sticky;
+            top: 20px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .section-block {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .section-header h3 {
+            font-size: 1.2rem;
+            color: #000000;
+            font-weight: 800;
+        }
+        
+        .dynamic-list-item {
+            background: #f8fafc;
+            border: 2px solid #000000;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .remove-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ef4444;
+            color: #ffffff;
+            border: 1px solid #ef4444;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-weight: 800;
+        }
+        
+        .remove-btn:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+        
+        .add-btn {
+            background: #ffffff;
+            border: 2px dashed #000000;
+            color: #000000;
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 700;
+        }
+        
+        .add-btn:hover {
+            background: #f0fdf4;
+            color: #10b981;
+            border-color: #10b981;
+        }
+        
+        .action-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        /* The Actual Resume Template Preview */
+        .resume-preview {
+            background: white;
+            color: #111;
+            flex-grow: 1;
+            border-radius: 12px;
+            border: 2px solid #000000;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            overflow-y: auto;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+        
+        .resume-preview h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+            color: #000;
+        }
+        
+        .resume-preview .contact-info {
+            font-size: 13px;
+            color: #444;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+        }
+        
+        .resume-preview h2 {
+            font-size: 16px;
+            color: #000;
+            text-transform: uppercase;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 3px;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .resume-preview .item-title {
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .resume-preview .item-subtitle {
+            font-size: 13px;
+            font-style: italic;
+            color: #555;
+        }
+        
+        .resume-preview .item-date {
+            float: right;
+            font-size: 13px;
+        }
+        
+        .resume-preview p {
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        
+        .ai-feedback-panel {
+            background: #f0fdf4;
+            border: 2px solid #10b981;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            color: #065f46;
+            display: none;
+        }
+        
+        textarea.form-control {
+            width: 100%;
+            min-height: 100px;
+            padding: 14px 16px;
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 10px;
+            font-size: 1rem;
+            color: #000000;
+            font-weight: 600;
+            resize: vertical;
+        }
+        textarea.form-control:focus {
+            border-color: #10b981;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar" style="margin-bottom: 20px;">
+        <a href="{{ url_for('dashboard') }}" class="nav-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981;"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+            <span>Smart Campus Toolkit</span>
+        </a>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+            <a href="{{ url_for('index') }}" class="nav-link">Question Papers</a>
+            <a href="{{ url_for('resume_builder') }}" class="nav-link active">Resume Builder</a>
+            <a href="{{ url_for('logout') }}" class="btn-logout">Logout ({{ session.username }})</a>
+        </div>
+    </nav>
+
+    <div class="builder-container">
+        <!-- LEFT PANE: Editor -->
+        <div class="editor-pane card glass">
+            <form id="resume-form">
+                
+                <div class="section-block">
+                    <div class="section-header">
+                        <h3>Personal Details</h3>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="full_name" placeholder="John Doe" oninput="updatePreview()">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="email" placeholder="john@example.com" oninput="updatePreview()">
+                        </div>
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="text" id="phone" placeholder="+1 234 567 8900" oninput="updatePreview()">
+                        </div>
+                        <div class="form-group">
+                            <label>Location</label>
+                            <input type="text" id="location" placeholder="New York, NY" oninput="updatePreview()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-block">
+                    <div class="section-header">
+                        <h3>Professional Summary</h3>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="summary" class="form-control" placeholder="A brief summary of your career objective..." oninput="updatePreview()"></textarea>
+                    </div>
+                </div>
+
+                <div class="section-block">
+                    <div class="section-header">
+                        <h3>Work Experience</h3>
+                    </div>
+                    <div id="experience-container">
+                        <!-- Dynamic items injected here -->
+                    </div>
+                    <button type="button" class="add-btn" onclick="addExperience()">+ Add Experience</button>
+                </div>
+
+                <div class="section-block">
+                    <div class="section-header">
+                        <h3>Education</h3>
+                    </div>
+                    <div id="education-container">
+                        <!-- Dynamic items injected here -->
+                    </div>
+                    <button type="button" class="add-btn" onclick="addEducation()">+ Add Education</button>
+                </div>
+                
+                <div class="section-block">
+                    <div class="section-header">
+                        <h3>Skills</h3>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="skills" class="form-control" placeholder="Python, React, Machine Learning (comma separated)" oninput="updatePreview()"></textarea>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- RIGHT PANE: Preview & Actions -->
+        <div class="preview-pane">
+            <div class="action-bar">
+                <button type="button" class="btn btn-primary" onclick="reviewResume()" id="review-btn">✨ AI Review</button>
+                <button type="button" class="btn btn-success" onclick="downloadPDF()">Download PDF</button>
+            </div>
+            
+            <div id="ai-feedback" class="ai-feedback-panel">
+                <h4 style="color: var(--primary); margin-bottom: 10px;">AI Suggestions</h4>
+                <div id="ai-content">Analyzing...</div>
+            </div>
+
+            <div class="resume-preview" id="resume-preview">
+                <h1 id="preview-name">Your Name</h1>
+                <div class="contact-info">
+                    <span id="preview-email">email@example.com</span> | 
+                    <span id="preview-phone">Phone Number</span> | 
+                    <span id="preview-location">Location</span>
+                </div>
+                
+                <h2>Summary</h2>
+                <p id="preview-summary">Your professional summary will appear here.</p>
+                
+                <h2>Experience</h2>
+                <div id="preview-experience"></div>
+                
+                <h2>Education</h2>
+                <div id="preview-education"></div>
+                
+                <h2>Skills</h2>
+                <p id="preview-skills"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let experienceCount = 0;
+        let educationCount = 0;
+
+        function addExperience() {
+            experienceCount++;
+            const html = `
+                <div class="dynamic-list-item" id="exp-${experienceCount}">
+                    <button type="button" class="remove-btn" onclick="document.getElementById('exp-${experienceCount}').remove(); updatePreview()">&times;</button>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Job Title</label>
+                            <input type="text" class="exp-title" oninput="updatePreview()">
+                        </div>
+                        <div class="form-group">
+                            <label>Company</label>
+                            <input type="text" class="exp-company" oninput="updatePreview()">
+                        </div>
+                        <div class="form-group">
+                            <label>Dates</label>
+                            <input type="text" class="exp-dates" placeholder="Jan 2020 - Present" oninput="updatePreview()">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:15px;">
+                        <label>Description</label>
+                        <textarea class="form-control exp-desc" oninput="updatePreview()"></textarea>
+                    </div>
+                </div>
+            `;
+            document.getElementById('experience-container').insertAdjacentHTML('beforeend', html);
+        }
+
+        function addEducation() {
+            educationCount++;
+            const html = `
+                <div class="dynamic-list-item" id="edu-${educationCount}">
+                    <button type="button" class="remove-btn" onclick="document.getElementById('edu-${educationCount}').remove(); updatePreview()">&times;</button>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Degree / Certificate</label>
+                            <input type="text" class="edu-degree" oninput="updatePreview()">
+                        </div>
+                        <div class="form-group">
+                            <label>Institution</label>
+                            <input type="text" class="edu-school" oninput="updatePreview()">
+                        </div>
+                        <div class="form-group">
+                            <label>Dates</label>
+                            <input type="text" class="edu-dates" placeholder="2016 - 2020" oninput="updatePreview()">
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('education-container').insertAdjacentHTML('beforeend', html);
+        }
+
+        function updatePreview() {
+            // Basic Info
+            document.getElementById('preview-name').innerText = document.getElementById('full_name').value || 'Your Name';
+            document.getElementById('preview-email').innerText = document.getElementById('email').value || 'email@example.com';
+            document.getElementById('preview-phone').innerText = document.getElementById('phone').value || 'Phone Number';
+            document.getElementById('preview-location').innerText = document.getElementById('location').value || 'Location';
+            document.getElementById('preview-summary').innerText = document.getElementById('summary').value || 'Your professional summary will appear here.';
+            document.getElementById('preview-skills').innerText = document.getElementById('skills').value || '';
+
+            // Experience
+            let expHtml = '';
+            document.querySelectorAll('#experience-container .dynamic-list-item').forEach(item => {
+                const title = item.querySelector('.exp-title').value;
+                const company = item.querySelector('.exp-company').value;
+                const dates = item.querySelector('.exp-dates').value;
+                const desc = item.querySelector('.exp-desc').value.replace(/\n/g, '<br>');
+                if(title || company) {
+                    expHtml += `
+                        <div style="margin-bottom: 15px;">
+                            <div class="item-title">${title} <span class="item-date">${dates}</span></div>
+                            <div class="item-subtitle">${company}</div>
+                            <p style="margin-top:5px;">${desc}</p>
+                        </div>
+                    `;
+                }
+            });
+            document.getElementById('preview-experience').innerHTML = expHtml;
+
+            // Education
+            let eduHtml = '';
+            document.querySelectorAll('#education-container .dynamic-list-item').forEach(item => {
+                const degree = item.querySelector('.edu-degree').value;
+                const school = item.querySelector('.edu-school').value;
+                const dates = item.querySelector('.edu-dates').value;
+                if(degree || school) {
+                    eduHtml += `
+                        <div style="margin-bottom: 10px;">
+                            <div class="item-title">${school} <span class="item-date">${dates}</span></div>
+                            <div class="item-subtitle">${degree}</div>
+                        </div>
+                    `;
+                }
+            });
+            document.getElementById('preview-education').innerHTML = eduHtml;
+        }
+
+        function getResumeData() {
+            // Collect all data into a JSON object
+            const data = {
+                personal: {
+                    name: document.getElementById('full_name').value,
+                    email: document.getElementById('email').value,
+                    phone: document.getElementById('phone').value,
+                    location: document.getElementById('location').value,
+                    summary: document.getElementById('summary').value
+                },
+                skills: document.getElementById('skills').value,
+                experience: [],
+                education: []
+            };
+
+            document.querySelectorAll('#experience-container .dynamic-list-item').forEach(item => {
+                data.experience.push({
+                    title: item.querySelector('.exp-title').value,
+                    company: item.querySelector('.exp-company').value,
+                    dates: item.querySelector('.exp-dates').value,
+                    desc: item.querySelector('.exp-desc').value
+                });
+            });
+
+            document.querySelectorAll('#education-container .dynamic-list-item').forEach(item => {
+                data.education.push({
+                    degree: item.querySelector('.edu-degree').value,
+                    school: item.querySelector('.edu-school').value,
+                    dates: item.querySelector('.edu-dates').value
+                });
+            });
+
+            return data;
+        }
+
+        async function reviewResume() {
+            const btn = document.getElementById('review-btn');
+            const panel = document.getElementById('ai-feedback');
+            const content = document.getElementById('ai-content');
+            
+            btn.innerText = "Analyzing...";
+            btn.disabled = true;
+            panel.style.display = 'block';
+            content.innerHTML = '<div class="spinner" style="width:20px;height:20px;margin:0 auto;border-width:2px;"></div>';
+
+            try {
+                const response = await fetch('/api/review-resume', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(getResumeData())
+                });
+                
+                const result = await response.json();
+                if(result.error) {
+                    content.innerHTML = `<span style="color:#ef4444">${result.error}</span>`;
+                } else {
+                    // Format response (basic markdown to html for lists/bold)
+                    let formatted = result.feedback
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n/g, '<br>');
+                    
+                    content.innerHTML = `
+                        <div style="font-size:1.2rem; font-weight:bold; margin-bottom:10px; color:#ffffff;">
+                            ATS Score: <span style="color:#ffffff; font-weight:800; border: 1px solid rgba(255,255,255,0.3); padding: 2px 8px; border-radius:4px; background: rgba(255,255,255,0.08);">${result.score}/100</span>
+                        </div>
+                        <p style="color:#cbd5e1;">${formatted}</p>
+                    `;
+                }
+            } catch (e) {
+                content.innerHTML = `<span style="color:#ef4444">Failed to connect to AI server.</span>`;
+            }
+
+            btn.innerText = "✨ AI Review";
+            btn.disabled = false;
+        }
+
+        function downloadPDF() {
+            // For Phase 1, we can trigger the browser's print function targeted at the preview
+            // A more robust backend PDF generation would be handled via an API endpoint.
+            const printContent = document.getElementById('resume-preview').outerHTML;
+            const originalContent = document.body.innerHTML;
+            
+            // Temporary styling for print
+            document.body.innerHTML = `
+                <style>
+                    body { background: white; margin: 0; padding: 20px; }
+                    .resume-preview { box-shadow: none; border-radius: 0; padding: 0; }
+                </style>
+                ${printContent}
+            `;
+            window.print();
+            document.body.innerHTML = originalContent;
+            
+            // Re-attach listeners since innerHTML reset wiped them
+            document.getElementById('full_name').addEventListener('input', updatePreview);
+            // In a real app we'd use a more robust print method or backend PDF generation,
+            // but window.print() serves as a functional MVP.
+            window.location.reload(); 
+        }
+
+        // Initialize with one empty experience and education block
+        addExperience();
+        addEducation();
+    </script>
+</body>
+</html>

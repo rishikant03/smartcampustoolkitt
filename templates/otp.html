@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP - AI Student Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .otp-container {
+            max-width: 460px;
+            margin: 70px auto;
+            background: rgba(14, 14, 14, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            text-align: center;
+        }
+
+        .otp-icon-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 1px solid #ffffff;
+            color: #000000;
+            margin-bottom: 20px;
+        }
+
+        .otp-input-large {
+            width: 100%;
+            font-size: 2rem;
+            letter-spacing: 8px;
+            text-align: center;
+            font-weight: 700;
+            padding: 14px 10px;
+            background: #050505;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: #ffffff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .otp-input-large:focus {
+            border-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+        }
+
+        .status-box {
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin: 20px 0;
+            font-size: 0.9rem;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-success {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        .status-demo {
+            background: #111111;
+            border: 1px dashed rgba(255, 255, 255, 0.25);
+            color: #d4d4d8;
+        }
+
+        .status-demo code {
+            background: #000000;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body style="margin:0; padding:20px; background:var(--background);">
+
+<div class="otp-container">
+    <div class="otp-icon-badge">
+        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+    </div>
+
+    <h1 style="font-size: 1.75rem; font-weight: 700; margin-bottom: 8px;">Verify Phone Number</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px;">
+        {% if phone %}
+            OTP code sent to <strong>{{ phone }}</strong>
+        {% else %}
+            Enter the 6-digit OTP code sent to your phone.
+        {% endif %}
+    </p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages" style="margin-bottom: 20px;">
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    {% if sms_sent %}
+        <div class="status-box status-success">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <div>
+                <strong>SMS Dispatched</strong>: Real SMS sent via gateway to your mobile carrier.
+            </div>
+        </div>
+    {% elif dev_otp %}
+        <div class="status-box status-demo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <div>
+                <div><strong>Testing OTP:</strong> <code>{{ dev_otp }}</code></div>
+                <small style="color: var(--text-muted);">To send real SMS to phones, add <code>FAST2SMS_API_KEY</code> in <code>.env</code></small>
+            </div>
+        </div>
+    {% endif %}
+
+    <form action="{{ url_for('verify_otp') }}" method="POST">
+        <div class="form-group" style="margin-bottom: 25px;">
+            <input type="text" id="otp" name="otp" class="otp-input-large" placeholder="123456" required autocomplete="one-time-code" maxlength="6" pattern="\d{6}" autofocus>
+        </div>
+        <button type="submit" class="btn btn-primary btn-large" style="width: 100%;">Verify & Sign In</button>
+    </form>
+
+    <div style="text-align: center; margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            <a href="{{ url_for('login') }}" style="color: #ffffff; text-decoration: underline;">&larr; Back to login</a>
+        </p>
+    </div>
+</div>
+
+</body>
+</html>

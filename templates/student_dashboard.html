@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal - AI Online Examination</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body { background: #ffffff; color: #000000; }
+        .portal-container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+        .join-card { background: #000000; border: 2px solid #000000; border-radius: 24px; padding: 35px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); color: #ffffff; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: #ffffff; border: 2px solid #000000; border-radius: 16px; padding: 20px; text-align: center; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05); transition: transform 0.2s, border-color 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); border-color: #10b981; }
+        
+        .practice-banner { background: #000000; border: 2px solid #000000; border-radius: 20px; padding: 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); color: #ffffff; }
+        .mock-subject-pill { background: #18181b; border: 1px solid #27272a; color: #ffffff; padding: 8px 16px; border-radius: 20px; text-decoration: none; font-size: 0.88rem; font-weight: 600; transition: all 0.2s; }
+        .mock-subject-pill:hover { background: #10b981; color: #ffffff; border-color: #10b981; }
+
+        .table-card { background: #ffffff; border: 2px solid #000000; border-radius: 20px; padding: 25px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05); margin-bottom: 30px; color: #000000; }
+        .s-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .s-table th, .s-table td { padding: 14px 16px; border-bottom: 1px solid #e2e8f0; font-size: 0.92rem; color: #000000; }
+        .s-table th { color: #000000; font-size: 0.82rem; text-transform: uppercase; font-weight: 700; }
+
+        .dashboard-card,
+        a.dashboard-card,
+        a.dashboard-card:hover,
+        a.dashboard-card:focus,
+        a.dashboard-card:active {
+            text-decoration: none !important;
+            color: #000000 !important;
+            display: block;
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .dashboard-card:hover,
+        a.dashboard-card:hover {
+            text-decoration: none !important;
+            transform: translateY(-3px);
+            border-color: #10b981;
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
+        }
+        .dashboard-card h3,
+        a.dashboard-card h3,
+        .dashboard-card:hover h3,
+        a.dashboard-card:hover h3 {
+            text-decoration: none !important;
+            color: #000000 !important;
+            font-size: 1.2rem;
+            margin-bottom: 6px;
+        }
+        .dashboard-card p,
+        a.dashboard-card p,
+        .dashboard-card:hover p,
+        a.dashboard-card:hover p {
+            text-decoration: none !important;
+            color: #52525b !important;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar glass">
+    <div class="nav-brand">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981;"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+        <span>Smart Campus Toolkit</span>
+    </div>
+    <div class="nav-links">
+        <a href="{{ url_for('student_dashboard') }}" class="nav-link active">Student Portal</a>
+        <a href="{{ url_for('student_practice_page') }}" class="nav-link">🎯 AI Practice Test</a>
+        <a href="{{ url_for('resume_builder') }}" class="nav-link">Resume Builder</a>
+        <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
+        <div class="nav-user">
+            <span style="font-weight: 700;">Student: {{ session['username'] }}</span>
+            <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="portal-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages" style="margin-bottom: 25px;">
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- 1. JOIN ONLINE TEST FORM -->
+    <div class="join-card">
+        <span style="background: #10b981; color: #ffffff; padding: 5px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">SECURE TEST ACCESS</span>
+        <h2 style="font-size: 1.8rem; margin: 12px 0 6px 0; color: #ffffff;">Join an Online Examination</h2>
+        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 20px;">Please enter your full name along with the official Test ID and Password to enter the examination.</p>
+        
+        <form action="{{ url_for('student_join_test') }}" method="POST" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto; gap: 15px; align-items: flex-end;">
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #ffffff; margin-bottom: 6px; text-transform: uppercase;">Your Full Name <span style="color: #10b981;">*</span></label>
+                <input type="text" name="candidate_name" id="joinCandidateName" placeholder="Full Name (e.g. Alex Johnson)" required value="{{ session.get('username', '') }}" style="width: 100%; padding: 14px 18px; border-radius: 12px; border: 1.5px solid #ffffff; background: #ffffff; color: #000000; font-size: 0.95rem; outline: none; font-weight: 600;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #ffffff; margin-bottom: 6px; text-transform: uppercase;">Test ID <span style="color: #10b981;">*</span></label>
+                <input type="text" name="test_id" id="joinTestId" placeholder="Test ID (e.g. TEST-7F93A1)" required style="width: 100%; padding: 14px 18px; border-radius: 12px; border: 1.5px solid #ffffff; background: #ffffff; color: #000000; font-family: monospace; font-size: 0.95rem; letter-spacing: 1px; outline: none; font-weight: 700;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #ffffff; margin-bottom: 6px; text-transform: uppercase;">Password <span style="color: #10b981;">*</span></label>
+                <input type="text" name="password" id="joinPassword" placeholder="Password (e.g. MATH@2026)" required style="width: 100%; padding: 14px 18px; border-radius: 12px; border: 1.5px solid #ffffff; background: #ffffff; color: #000000; font-family: monospace; font-size: 0.95rem; letter-spacing: 1px; outline: none; font-weight: 700;">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary" style="padding: 14px 28px; font-size: 1rem; height: 52px; white-space: nowrap;">
+                    Enter Exam &rarr;
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Student Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div style="font-size: 2rem; font-weight: 800; color: #10b981;">{{ student_stats.completed_exams }}</div>
+            <div style="font-size: 0.85rem; color: #52525b; text-transform: uppercase; margin-top: 4px; font-weight: 700;">Completed Exams</div>
+        </div>
+        <div class="stat-card">
+            <div style="font-size: 2rem; font-weight: 800; color: #10b981;">{{ student_stats.practice_count }}</div>
+            <div style="font-size: 0.85rem; color: #52525b; text-transform: uppercase; margin-top: 4px; font-weight: 700;">AI Practice Tests</div>
+        </div>
+        <div class="stat-card">
+            <div style="font-size: 2rem; font-weight: 800; color: #10b981;">{{ student_stats.avg_score }}%</div>
+            <div style="font-size: 0.85rem; color: #52525b; text-transform: uppercase; margin-top: 4px; font-weight: 700;">Average Score</div>
+        </div>
+        <div class="stat-card">
+            <div style="font-size: 2rem; font-weight: 800; color: #10b981;">{{ student_stats.passed_count }}</div>
+            <div style="font-size: 0.85rem; color: #52525b; text-transform: uppercase; margin-top: 4px; font-weight: 700;">Exams Passed</div>
+        </div>
+    </div>
+
+    <!-- 2. AI PRACTICE TEST BANNER -->
+    <div class="practice-banner">
+        <div style="max-width: 620px;">
+            <span style="font-size: 0.8rem; background: #10b981; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-weight: 700; text-transform: uppercase;">Student AI Practice Studio</span>
+            <h2 style="font-size: 1.6rem; margin: 10px 0 6px 0; color: #ffffff;">🎯 Independent AI Practice Tests</h2>
+            <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">Upload any textbook PDF or choose a subject to generate instant practice exams with answer explanations and AI learning analytics.</p>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="{{ url_for('student_practice_page') }}?subject=Computer+Science" class="mock-subject-pill">💻 Computer Science</a>
+                <a href="{{ url_for('student_practice_page') }}?subject=General+Science" class="mock-subject-pill">🔬 General Science</a>
+                <a href="{{ url_for('student_practice_page') }}?subject=Mathematics" class="mock-subject-pill">📐 Mathematics</a>
+                <a href="{{ url_for('student_practice_page') }}?subject=English" class="mock-subject-pill">📚 English</a>
+            </div>
+        </div>
+        <div>
+            <a href="{{ url_for('student_practice_page') }}" class="btn btn-primary btn-large" style="padding: 14px 26px; font-size: 1rem;">
+                Open Practice Studio &rarr;
+            </a>
+        </div>
+    </div>
+
+    <!-- 3. QUESTION PAPER GENERATOR & RESUME BUILDER SECTION -->
+    <div style="margin-bottom: 35px;">
+        <div style="margin-bottom: 18px;">
+            <span style="font-size: 0.8rem; background: #f0fdf4; color: #047857; border: 1.5px solid #10b981; padding: 4px 12px; border-radius: 20px; font-weight: 700; text-transform: uppercase;">Study & Career Suite</span>
+            <h2 style="font-size: 1.5rem; margin: 8px 0 4px 0; color: #000000; font-weight: 800;">Self-Study & Career Preparation</h2>
+            <p style="color: #52525b; font-size: 0.92rem; margin: 0;">Generate custom textbook practice papers or build an ATS-friendly placement resume.</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+            <!-- Question Paper Generator Card -->
+            <a href="{{ url_for('index') }}" class="card dashboard-card glass" style="text-decoration: none !important; color: #000000;">
+                <div style="display: flex; gap: 16px; align-items: flex-start;">
+                    <div style="background: #f0fdf4; border: 2px solid #10b981; border-radius: 14px; padding: 14px; font-size: 2rem; flex-shrink: 0; line-height: 1;">
+                        📄
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                            <h3 style="text-decoration: none !important; color: #000000; margin: 0;">Question Paper Generator</h3>
+                            <span style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; padding: 2px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase;">AI Paper Generator</span>
+                        </div>
+                        <p style="text-decoration: none !important; color: #52525b; margin: 0 0 12px 0;">Upload any textbook chapter or syllabus PDF to generate full printable exam papers with instant comprehensive answer keys.</p>
+                        <div style="display: inline-flex; align-items: center; gap: 6px; color: #10b981; font-weight: 700; font-size: 0.9rem;">
+                            Open Paper Generator &rarr;
+                        </div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Resume Builder Card -->
+            <a href="{{ url_for('resume_builder') }}" class="card dashboard-card glass" style="text-decoration: none !important; color: #000000;">
+                <div style="display: flex; gap: 16px; align-items: flex-start;">
+                    <div style="background: #f0fdf4; border: 2px solid #10b981; border-radius: 14px; padding: 14px; font-size: 2rem; flex-shrink: 0; line-height: 1;">
+                        💼
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                            <h3 style="text-decoration: none !important; color: #000000; margin: 0;">AI Resume Builder</h3>
+                            <span style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; padding: 2px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase;">Placement Tool</span>
+                        </div>
+                        <p style="text-decoration: none !important; color: #52525b; margin: 0 0 12px 0;">Build ATS-friendly, professional placement CVs with AI-crafted summaries, project highlights, and single-click printable PDF export.</p>
+                        <div style="display: inline-flex; align-items: center; gap: 6px; color: #10b981; font-weight: 700; font-size: 0.9rem;">
+                            Launch Resume Builder &rarr;
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- 4. MY EXAM ATTEMPTS HISTORY -->
+    <div class="table-card">
+        <h3 style="margin-bottom: 15px; color: #000000;">My Official Examination History</h3>
+        {% if my_attempts %}
+        <div style="overflow-x: auto;">
+            <table class="s-table">
+                <thead>
+                    <tr>
+                        <th>Exam Title</th>
+                        <th>Subject</th>
+                        <th>Score</th>
+                        <th>Percentage</th>
+                        <th>Result</th>
+                        <th>Completed Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in my_attempts %}
+                    <tr>
+                        <td><strong>{{ a.title }}</strong></td>
+                        <td style="color: #52525b;">{{ a.subject }}</td>
+                        <td><strong>{{ a.score }} / {{ a.total_marks }}</strong></td>
+                        <td><strong>{{ a.percentage }}%</strong></td>
+                        <td>
+                            {% if a.passed %}
+                                <span style="font-weight: 700; color: #15803d; background: #dcfce7; padding: 4px 12px; border-radius: 20px; border: 1px solid #86efac; font-size: 0.8rem;">PASSED</span>
+                            {% else %}
+                                <span style="font-weight: 700; color: #b45309; background: #fef3c7; padding: 4px 12px; border-radius: 20px; border: 1px solid #fde68a; font-size: 0.8rem;">NEEDS REVIEW</span>
+                            {% endif %}
+                        </td>
+                        <td style="color: #52525b;">{{ a.completed_at[:16] if a.completed_at else 'In Progress' }}</td>
+                        <td>
+                            <a href="{{ url_for('student_exam_result', attempt_id=a.id) }}" style="color: #10b981; text-decoration: none; font-weight: 700;">
+                                View Scorecard &rarr;
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 30px; color: var(--text-muted);">
+            <p>You have not taken any official examinations yet. Enter a Test ID above to begin!</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+</body>
+</html>

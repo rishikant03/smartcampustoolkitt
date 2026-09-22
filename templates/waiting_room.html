@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waiting Room - {{ settings.exam_name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body style="background: #ffffff; color: #000000;">
+    <div class="container" style="max-width: 800px; padding-top: 50px;">
+        <div class="card" style="background: #ffffff; border: 2px solid #000000; border-radius: 20px; padding: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.06);">
+            <h2 style="text-align: center; margin-bottom: 30px; font-weight: 800; color: #000000;">Examination Waiting Room</h2>
+            
+            <div style="background: #f8fafc; padding: 24px; border-radius: 14px; margin-bottom: 25px; border: 2px solid #000000;">
+                <h3 style="margin-bottom: 12px; color: #000000; font-weight: 800;">Exam Details</h3>
+                <p style="margin: 6px 0; color: #000000;"><strong>Name:</strong> {{ settings.exam_name }}</p>
+                <p style="margin: 6px 0; color: #000000;"><strong>Subject:</strong> {{ settings.subject }}</p>
+                <p style="margin: 6px 0; color: #000000;"><strong>Duration:</strong> {{ exam.duration_mins }} Minutes</p>
+                <p style="margin: 6px 0; color: #000000;"><strong>Max Warnings:</strong> {{ exam.max_warnings }}</p>
+            </div>
+            
+            <div style="background: #f0fdf4; border: 2px solid #10b981; padding: 24px; border-radius: 14px; margin-bottom: 30px; color: #1f2937;">
+                <h3 style="margin-bottom: 12px; color: #065f46; font-weight: 800;">Anti-Cheating Rules</h3>
+                <ul style="padding-left: 20px; line-height: 1.6; margin: 0; color: #065f46; font-weight: 600;">
+                    <li>You must take this exam in <strong>Full Screen Mode</strong>. Exiting full screen will issue a warning.</li>
+                    <li><strong>Do not switch tabs or minimize the window.</strong> Doing so will issue a warning.</li>
+                    <li>If you exceed {{ exam.max_warnings }} warnings, your exam will be <strong>automatically submitted</strong>.</li>
+                    <li>Copying and pasting is disabled.</li>
+                </ul>
+            </div>
+            
+            <form action="{{ url_for('start_exam', exam_id=exam.id) }}" method="POST" style="text-align: center;">
+                <label style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 25px; cursor: pointer; color: #000000; font-weight: 700;">
+                    <input type="checkbox" required style="width: 20px; height: 20px; accent-color: #10b981;">
+                    I have read the rules and agree to start the exam.
+                </label>
+                <button type="submit" class="btn btn-primary btn-large" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800; padding: 14px 32px; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">
+                    Start Exam Now &rarr;
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results Dashboard - {{ test.title }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body { background: #ffffff; color: #000000; }
+        .results-container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; margin-bottom: 30px; }
+        .s-card { background: #ffffff; border: 2px solid #000000; border-radius: 18px; padding: 22px; text-align: center; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05); }
+        .s-number { font-size: 2.2rem; font-weight: 800; color: #10b981; }
+        .s-label { font-size: 0.85rem; color: #52525b; text-transform: uppercase; margin-top: 4px; font-weight: 700; }
+
+        .table-card { background: #ffffff; border: 2px solid #000000; border-radius: 20px; padding: 25px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05); margin-bottom: 30px; color: #000000; }
+        .r-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .r-table th, .r-table td { padding: 14px 16px; border-bottom: 1px solid #e2e8f0; font-size: 0.92rem; color: #000000; }
+        .r-table th { color: #000000; font-size: 0.82rem; text-transform: uppercase; font-weight: 700; }
+
+        .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; font-weight: 800; font-size: 0.85rem; }
+        .rank-1 { background: #10b981; color: #ffffff; }
+        .rank-2 { background: #000000; color: #ffffff; }
+        .rank-3 { background: #e2e8f0; color: #000000; border: 1px solid #000000; }
+        .rank-other { background: #f8fafc; border: 1.5px solid #000000; color: #000000; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar glass">
+    <div class="nav-brand">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981;"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+        <span>Smart Campus Toolkit</span>
+    </div>
+    <div class="nav-links">
+        <a href="{{ url_for('teacher_dashboard') }}" class="nav-link">Teacher Dashboard</a>
+        <a href="{{ url_for('live_monitor_page', test_id=test.id) }}" class="nav-link">Live Monitor</a>
+        <a href="{{ url_for('teacher_dashboard') }}#previous-results" class="nav-link active">Previous Results</a>
+        <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
+        <div class="nav-user">
+            <span style="font-weight: 700;">Teacher: {{ session['username'] }}</span>
+            <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="results-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h1 style="font-size: 1.8rem; margin: 0; color: #000000;">📊 Examination Results: {{ test.title }}</h1>
+            <p style="color: #52525b; margin: 4px 0 0 0;">Subject: {{ test.subject }} | Test ID: <strong>{{ test.id }}</strong> | Total Marks: <strong>{{ test.total_marks }}</strong> | Status: <span style="font-weight:700; color:{% if test.is_active %}#059669{% else %}#dc2626{% endif %};">{% if test.is_active %}● Active{% else %}■ Stopped{% endif %}</span></p>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            {% if test.is_active %}
+            <form action="{{ url_for('teacher_stop_test', test_id=test.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to STOP this examination?\n\n• No new students can join.\n• All active attempts will be submitted and graded immediately.');">
+                <button type="submit" class="btn" style="background: #dc2626; color: #ffffff; border: 1px solid #b91c1c; font-weight: 700; padding: 8px 16px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                    🛑 Stop Test
+                </button>
+            </form>
+            {% else %}
+            <form action="{{ url_for('teacher_toggle_status', test_id=test.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Reopen this examination? Students will be able to join and continue.');">
+                <button type="submit" class="btn" style="background: #f0fdf4; color: #047857; border: 1.5px solid #10b981; font-weight: 700; padding: 8px 16px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                    ▶ Reopen Test
+                </button>
+            </form>
+            {% endif %}
+            <a href="{{ url_for('teacher_export_results', test_id=test.id) }}" class="btn btn-primary">
+                📥 Export Results (CSV)
+            </a>
+            <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="summary-grid">
+        <div class="s-card">
+            <div class="s-number">{{ attempts|length }}</div>
+            <div class="s-label">Total Submissions</div>
+        </div>
+        <div class="s-card">
+            <div class="s-number">{{ avg_score }}%</div>
+            <div class="s-label">Average Score</div>
+        </div>
+        <div class="s-card">
+            <div class="s-number">{{ high_score }} pts</div>
+            <div class="s-label">Highest Score</div>
+        </div>
+        <div class="s-card">
+            <div class="s-number">{{ pass_rate }}%</div>
+            <div class="s-label">Pass Rate</div>
+        </div>
+    </div>
+
+    <!-- Leaderboard Table -->
+    <div class="table-card">
+        <h3 style="margin-bottom: 15px; color: #000000;">Student Leaderboard & Rankings</h3>
+
+        {% if attempts %}
+        <div style="overflow-x: auto;">
+            <table class="r-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Student Full Name</th>
+                        <th>Test Title</th>
+                        <th>Score</th>
+                        <th>Percentage</th>
+                        <th>Result</th>
+                        <th>Time Taken</th>
+                        <th>Submission Time</th>
+                        <th>Tab Violations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for att in attempts %}
+                    <tr>
+                        <td>
+                            <span class="rank-badge {% if loop.index == 1 %}rank-1{% elif loop.index == 2 %}rank-2{% elif loop.index == 3 %}rank-3{% else %}rank-other{% endif %}">
+                                {{ loop.index }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong style="color: #000000; font-size: 0.95rem;">{{ att.candidate_name or att.username }}</strong>
+                            <small style="color: #64748b; display: block;">Roll / User: {{ att.candidate_roll or att.email }}</small>
+                        </td>
+                        <td>
+                            <strong style="color: #000000;">{{ test.title }}</strong><br>
+                            <small style="color: #64748b;">{{ test.subject }}</small>
+                        </td>
+                        <td><strong>{{ att.score }}</strong> / {{ test.total_marks }}</td>
+                        <td><strong>{{ att.percentage }}%</strong></td>
+                        <td>
+                            {% if att.passed %}
+                            <span style="font-weight: 700; color: #15803d; background: #dcfce7; padding: 4px 10px; border-radius: 6px; border: 1px solid #86efac;">
+                                PASS
+                            </span>
+                            {% else %}
+                            <span style="font-weight: 700; color: #dc2626; background: #fef2f2; padding: 4px 10px; border-radius: 6px; border: 1px solid #fecaca;">
+                                FAIL
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>{{ (att.time_taken_seconds // 60) }}m {{ (att.time_taken_seconds % 60) }}s</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <span style="color: #10b981;">🕒</span>
+                                <strong style="font-family: monospace; font-size: 0.88rem; color: #000000;">
+                                    {{ att.completed_at[:19] if att.completed_at else 'Just Now' }}
+                                </strong>
+                            </div>
+                        </td>
+                        <td>
+                            <span style="color: #000000; font-weight: 700;">
+                                {{ att.tab_switches }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+            <p>No student submissions received yet for this exam.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+</body>
+</html>

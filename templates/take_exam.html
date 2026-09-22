@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ settings.exam_name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #ffffff; color: #000000; font-family: 'Inter', sans-serif; }
+        .exam-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: #ffffff; border-bottom: 2px solid #000000; }
+        .exam-container { display: flex; height: calc(100vh - 65px); }
+        .sidebar { width: 300px; background: #f8fafc; border-right: 2px solid #000000; padding: 20px; overflow-y: auto; }
+        .main-area { flex: 1; padding: 40px; overflow-y: auto; background: #ffffff; }
+        .timer { font-size: 1.4rem; font-weight: 800; color: #10b981; display: flex; align-items: center; gap: 10px; font-variant-numeric: tabular-nums; background: #000000; padding: 8px 16px; border-radius: 10px; border: 2px solid #000000; }
+        .timer.urgent { color: #ffffff; background: #ef4444; border-color: #ef4444; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        .q-nav-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; }
+        .q-btn { padding: 10px; text-align: center; border-radius: 8px; background: #ffffff; cursor: pointer; border: 2px solid #000000; color: #000000; font-weight: 700; transition: all 0.2s; }
+        .q-btn.active { border-color: #10b981; background: #f0fdf4; color: #000000; }
+        .q-btn.answered { background: #10b981; color: #ffffff; border-color: #000000; font-weight: 800; box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+        .q-btn.review { background: #fefce8; border-color: #ca8a04; color: #ca8a04; }
+        
+        .question-panel { display: none; }
+        .question-panel.active { display: block; }
+        
+        .option-label { display: block; padding: 15px; margin-bottom: 10px; border-radius: 10px; border: 2px solid #000000; cursor: pointer; background: #ffffff; color: #000000; font-weight: 600; transition: 0.2s; }
+        .option-label:hover { background: #f0fdf4; border-color: #10b981; }
+        .option-label input { margin-right: 10px; accent-color: #10b981; }
+        
+        .textarea-ans { width: 100%; height: 200px; background: #ffffff; border: 2px solid #000000; border-radius: 10px; color: #000000; padding: 15px; font-family: 'Inter', sans-serif; resize: vertical; font-weight: 600; }
+        .textarea-ans:focus { border-color: #10b981; outline: none; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
+        
+        .warning-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; }
+        .warning-modal.active { display: flex; }
+        .warning-box { background: #ffffff; padding: 40px; border-radius: 16px; max-width: 500px; text-align: center; border: 3px solid #000000; box-shadow: 0 20px 50px rgba(0,0,0,0.25); color: #000000; }
+    </style>
+</head>
+<body id="exam-body">
+    <div class="exam-header">
+        <div>
+            <h2 style="margin: 0; font-size: 1.2rem; color: #000000; font-weight: 800;">{{ settings.exam_name }}</h2>
+            <div style="font-size: 0.85rem; color: #4b5563; font-weight: 600;">Candidate: <strong style="color: #000000;">{{ session['username'] }}</strong></div>
+        </div>
+        <div class="timer" id="timerDisplay">
+            ⏳ <span id="timeText">--:--</span>
+        </div>
+        <div>
+            <form id="submitForm" action="{{ url_for('submit_exam', exam_id=exam.id) }}" method="POST">
+                <button type="submit" class="btn btn-primary" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800; padding: 10px 20px;" onclick="return confirm('Are you sure you want to submit the exam?');">Submit Exam</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="exam-container">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar">
+            <h3 style="margin-top: 0; font-size: 1rem; color: #9ca3af;">Question Navigator</h3>
+            <p style="font-size: 0.8rem; color: #9ca3af;">Click anywhere to Enter Fullscreen mode (Required).</p>
+            
+            <div class="q-nav-grid">
+                {% set q_idx = namespace(value=0) %}
+                {% if data.mcqs %}
+                    {% for q in data.mcqs %}
+                        <div class="q-btn {% if q_idx.value == 0 %}active{% endif %}" onclick="showQuestion({{ q_idx.value }})" id="nav-btn-{{ q_idx.value }}">
+                            {{ q_idx.value + 1 }}
+                        </div>
+                        {% set q_idx.value = q_idx.value + 1 %}
+                    {% endfor %}
+                {% endif %}
+                
+                {% if data.short_questions %}
+                    {% for q in data.short_questions %}
+                        <div class="q-btn {% if q_idx.value == 0 %}active{% endif %}" onclick="showQuestion({{ q_idx.value }})" id="nav-btn-{{ q_idx.value }}">
+                            {{ q_idx.value + 1 }}
+                        </div>
+                        {% set q_idx.value = q_idx.value + 1 %}
+                    {% endfor %}
+                {% endif %}
+                
+                {% if data.long_questions %}
+                    {% for q in data.long_questions %}
+                        <div class="q-btn {% if q_idx.value == 0 %}active{% endif %}" onclick="showQuestion({{ q_idx.value }})" id="nav-btn-{{ q_idx.value }}">
+                            {{ q_idx.value + 1 }}
+                        </div>
+                        {% set q_idx.value = q_idx.value + 1 %}
+                    {% endfor %}
+                {% endif %}
+            </div>
+            
+            <div style="margin-top: 30px; font-size: 0.85rem; color: #000000; font-weight: 700;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <div style="width: 16px; height: 16px; background: #10b981; border: 1.5px solid #000000; border-radius: 4px;"></div> Answered
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <div style="width: 16px; height: 16px; background: #ffffff; border: 2px solid #000000; border-radius: 4px;"></div> Not Answered
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Area -->
+        <div class="main-area">
+            {% set q_idx = namespace(value=0) %}
+            
+            <!-- MCQs -->
+            {% if data.mcqs %}
+                {% for q in data.mcqs %}
+                    <div class="question-panel {% if q_idx.value == 0 %}active{% endif %}" id="q-panel-{{ q_idx.value }}">
+                        <h2 style="margin-top: 0; color: #000000; font-weight: 800;">Question {{ q_idx.value + 1 }} <span style="font-size: 1rem; color: #10b981; font-weight: 700;">(MCQ - {{ q.marks }} Marks)</span></h2>
+                        <p style="font-size: 1.2rem; line-height: 1.6; margin-bottom: 30px; color: #000000; font-weight: 600;">{{ q.question }}</p>
+                        
+                        <div>
+                            {% for opt in q.options %}
+                            <label class="option-label">
+                                <input type="radio" name="ans_{{ q_idx.value }}" value="{{ opt }}" onchange="markAnswered({{ q_idx.value }})"> {{ opt }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% set q_idx.value = q_idx.value + 1 %}
+                {% endfor %}
+            {% endif %}
+            
+            <!-- Short Answers -->
+            {% if data.short_questions %}
+                {% for q in data.short_questions %}
+                    <div class="question-panel {% if q_idx.value == 0 %}active{% endif %}" id="q-panel-{{ q_idx.value }}">
+                        <h2 style="margin-top: 0; color: #000000; font-weight: 800;">Question {{ q_idx.value + 1 }} <span style="font-size: 1rem; color: #10b981; font-weight: 700;">(Short Answer - {{ q.marks }} Marks)</span></h2>
+                        <p style="font-size: 1.2rem; line-height: 1.6; margin-bottom: 30px; color: #000000; font-weight: 600;">{{ q.question }}</p>
+                        
+                        <textarea class="textarea-ans" oninput="markAnswered({{ q_idx.value }})" placeholder="Type your answer here..."></textarea>
+                    </div>
+                    {% set q_idx.value = q_idx.value + 1 %}
+                {% endfor %}
+            {% endif %}
+            
+            <!-- Long Answers -->
+            {% if data.long_questions %}
+                {% for q in data.long_questions %}
+                    <div class="question-panel {% if q_idx.value == 0 %}active{% endif %}" id="q-panel-{{ q_idx.value }}">
+                        <h2 style="margin-top: 0; color: #000000; font-weight: 800;">Question {{ q_idx.value + 1 }} <span style="font-size: 1rem; color: #10b981; font-weight: 700;">(Long Answer - {{ q.marks }} Marks)</span></h2>
+                        <p style="font-size: 1.2rem; line-height: 1.6; margin-bottom: 30px; color: #000000; font-weight: 600;">{{ q.question }}</p>
+                        
+                        <textarea class="textarea-ans" style="height: 300px;" oninput="markAnswered({{ q_idx.value }})" placeholder="Type your detailed answer here..."></textarea>
+                    </div>
+                    {% set q_idx.value = q_idx.value + 1 %}
+                {% endfor %}
+            {% endif %}
+            
+            <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+                <button class="btn btn-secondary" style="background: #ffffff; border: 2px solid #000000; color: #000000; font-weight: 700; padding: 10px 20px;" onclick="prevQuestion()">&larr; Previous</button>
+                <button class="btn btn-primary" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800; padding: 10px 24px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);" onclick="nextQuestion()">Save & Next &rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Warning Modal -->
+    <div class="warning-modal" id="warningModal">
+        <div class="warning-box">
+            <h2 style="color: #ef4444; margin-top: 0; font-weight: 800;">⚠️ Violation Detected</h2>
+            <p style="font-size: 1.1rem; margin-bottom: 20px; color: #000000; font-weight: 600;">You have switched tabs, minimized the browser, or exited full screen.</p>
+            <p style="color: #4b5563; font-weight: 700;">Warning Count: <strong id="warningCountDisplay" style="color: #ef4444; font-size: 1.4rem;">0</strong> / {{ exam.max_warnings }}</p>
+            <p style="color: #4b5563; font-size: 0.9rem; margin-bottom: 30px;">If you exceed the maximum warnings, your exam will be automatically submitted.</p>
+            <button class="btn btn-primary" style="background: #10b981; border: 2px solid #000000; color: #ffffff; font-weight: 800; padding: 12px 24px;" onclick="dismissWarning()">I Understand & Return to Fullscreen</button>
+        </div>
+    </div>
+
+    <script>
+        // Timer Logic
+        let timeLeft = {{ time_left }};
+        const timerText = document.getElementById('timeText');
+        const submitForm = document.getElementById('submitForm');
+        
+        function updateTimer() {
+            if (timeLeft <= 0) {
+                submitForm.submit();
+                return;
+            }
+            
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            timerText.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            
+            if (timeLeft <= 300) {
+                document.getElementById('timerDisplay').classList.add('urgent');
+            }
+            
+            timeLeft--;
+        }
+        setInterval(updateTimer, 1000);
+        updateTimer();
+        
+        // Navigation Logic
+        let currentQ = 0;
+        const totalQ = {{ q_idx.value }};
+        
+        function showQuestion(idx) {
+            document.querySelectorAll('.question-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(`q-panel-${idx}`).classList.add('active');
+            document.getElementById(`nav-btn-${idx}`).classList.add('active');
+            currentQ = idx;
+        }
+        
+        function nextQuestion() {
+            if (currentQ < totalQ - 1) showQuestion(currentQ + 1);
+        }
+        function prevQuestion() {
+            if (currentQ > 0) showQuestion(currentQ - 1);
+        }
+        
+        function markAnswered(idx) {
+            document.getElementById(`nav-btn-${idx}`).classList.add('answered');
+        }
+        
+        // Anti-Cheating Logic
+        let isExamActive = true;
+        const warningModal = document.getElementById('warningModal');
+        
+        function triggerWarning() {
+            if (!isExamActive) return;
+            
+            fetch("{{ url_for('record_warning') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ exam_id: "{{ exam.id }}" })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.action === 'terminate') {
+                    submitForm.submit();
+                } else {
+                    document.getElementById('warningCountDisplay').innerText = data.warnings;
+                    warningModal.classList.add('active');
+                }
+            });
+        }
+        
+        function dismissWarning() {
+            warningModal.classList.remove('active');
+            enterFullScreen();
+        }
+        
+        function enterFullScreen() {
+            let elem = document.documentElement;
+            if (elem.requestFullscreen) elem.requestFullscreen();
+            else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+            else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
+        }
+        
+        // Tab switch / visibility
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) triggerWarning();
+        });
+        
+        // Exit Fullscreen
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && !warningModal.classList.contains('active')) triggerWarning();
+        });
+        
+        // Disable Right Click & Copy/Paste
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.addEventListener('copy', event => event.preventDefault());
+        document.addEventListener('paste', event => event.preventDefault());
+        
+        // Initial Fullscreen Request
+        window.onload = () => {
+            document.body.addEventListener('click', () => {
+                if (!document.fullscreenElement) enterFullScreen();
+            }, { once: true });
+        };
+    </script>
+</body>
+</html>
