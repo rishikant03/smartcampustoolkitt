@@ -339,6 +339,9 @@ init_db()
 @app.errorhandler(500)
 @app.errorhandler(Exception)
 def handle_server_error(e):
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return e
     import traceback
     error_trace = traceback.format_exc()
     print(f"[500 Error] {e}\n{error_trace}")
