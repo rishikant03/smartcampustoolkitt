@@ -38,7 +38,12 @@ app = Flask(
     template_folder=TEMPLATE_DIR,
     static_folder=STATIC_DIR
 )
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "super_secret_dev_key")
+secret_key = (os.getenv("FLASK_SECRET_KEY") or "").strip()
+if not secret_key:
+    secret_key = "smartcampus_platform_secure_session_key_98371629841_prod"
+
+app.secret_key = secret_key
+app.config['SECRET_KEY'] = secret_key
 
 IS_VERCEL = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
 if IS_VERCEL:
