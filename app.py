@@ -1,5 +1,5 @@
 import os
-import sqlite3
+import utils.db as sqlite3
 import uuid
 import json
 from functools import wraps
@@ -49,18 +49,11 @@ IS_VERCEL = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
 if IS_VERCEL:
     UPLOAD_FOLDER = "/tmp/uploads"
     GENERATED_FOLDER = "/tmp/generated"
-    DB_PATH = "/tmp/papers.db"
-    seed_db = os.path.join(BASE_DIR, 'papers.db')
-    if os.path.exists(seed_db) and not os.path.exists(DB_PATH):
-        import shutil
-        try:
-            shutil.copy2(seed_db, DB_PATH)
-        except Exception:
-            pass
 else:
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
     GENERATED_FOLDER = os.path.join(BASE_DIR, 'generated')
-    DB_PATH = os.path.join(BASE_DIR, 'papers.db')
+    
+DB_PATH = "ignored" # Database handled by DATABASE_URL env var
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max
@@ -80,14 +73,21 @@ def init_db():
         ''')
         conn.execute('''
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
                 email TEXT,
                 phone TEXT,
                 auth_provider TEXT DEFAULT 'local',
                 is_verified INTEGER DEFAULT 0,
-                role TEXT DEFAULT 'student'
+                role TEXT DEFAULT 'student',
+                name TEXT,
+                email_verified INTEGER DEFAULT 0,
+                otp TEXT,
+                otp_expiry TIMESTAMP,
+                otp_attempts INTEGER DEFAULT 0,
+                otp_last_sent TIMESTAMP,
+                created_at TIMESTAMP
             )
         ''')
         conn.execute('''
@@ -119,7 +119,7 @@ def init_db():
         ''')
         conn.execute('''
             CREATE TABLE IF NOT EXISTS login_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 user_id INTEGER NOT NULL,
                 login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 ip_address TEXT,
@@ -144,7 +144,7 @@ def init_db():
         ''')
         conn.execute('''
             CREATE TABLE IF NOT EXISTS exam_participants (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 exam_id TEXT NOT NULL,
                 student_id INTEGER NOT NULL,
                 status TEXT DEFAULT 'waiting',
@@ -159,50 +159,12 @@ def init_db():
         ''')
         conn.execute('''
             CREATE TABLE IF NOT EXISTS student_responses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 participant_id INTEGER NOT NULL,
                 question_id TEXT NOT NULL,
                 answer TEXT,
                 is_correct INTEGER DEFAULT 0,
                 FOREIGN KEY (participant_id) REFERENCES exam_participants (id)
-            )
-        ''')
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS resumes (
-                id TEXT PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                data TEXT NOT NULL,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS user_profiles (
-                user_id INTEGER PRIMARY KEY,
-                full_name TEXT,
-                profile_photo TEXT,
-                joined_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_login_time TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS verification_tokens (
-                token TEXT PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                type TEXT NOT NULL,
-                expires_at TIMESTAMP NOT NULL,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS login_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                ip_address TEXT,
-                device TEXT,
-                method TEXT,
-                FOREIGN KEY (user_id) REFERENCES users (id)
             )
         ''')
         conn.execute('''
@@ -224,7 +186,7 @@ def init_db():
         ''')
         conn.execute('''
             CREATE TABLE IF NOT EXISTS tests (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 teacher_id INTEGER NOT NULL,
                 test_code TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
@@ -245,7 +207,7 @@ def init_db():
         ''')
         conn.execute('''
             CREATE TABLE IF NOT EXISTS test_attempts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 test_id INTEGER NOT NULL,
                 student_id INTEGER NOT NULL,
                 candidate_name TEXT,
@@ -289,7 +251,7 @@ def init_db():
         ''')
         conn.execute('''
             CREATE TABLE IF NOT EXISTS question_bank (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 teacher_id INTEGER,
                 subject TEXT NOT NULL,
                 chapter TEXT,
@@ -303,28 +265,10 @@ def init_db():
                 FOREIGN KEY (teacher_id) REFERENCES users (id)
             )
         ''')
-        # Safely migrate users table columns for 6-digit OTP email verification
-        cursor = conn.execute("PRAGMA table_info(users)")
-        existing_cols = [c[1] for c in cursor.fetchall()]
-        if 'name' not in existing_cols:
-            conn.execute("ALTER TABLE users ADD COLUMN name TEXT")
-        if 'email_verified' not in existing_cols:
-            conn.execute("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0")
-            conn.execute("UPDATE users SET email_verified = 1 WHERE is_verified = 1")
-        if 'otp' not in existing_cols:
-            conn.execute("ALTER TABLE users ADD COLUMN otp TEXT")
-        if 'otp_expiry' not in existing_cols:
-            conn.execute("ALTER TABLE users ADD COLUMN otp_expiry TIMESTAMP")
-        if 'otp_attempts' not in existing_cols:
-            conn.execute("ALTER TABLE users ADD COLUMN otp_attempts INTEGER DEFAULT 0")
-        if 'otp_last_sent' not in existing_cols:
-            conn.execute("ALTER TABLE users ADD COLUMN otp_last_sent TIMESTAMP")
-        if 'created_at' not in existing_cols:
-            conn.execute("ALTER TABLE users ADD COLUMN created_at TIMESTAMP")
             
         # Seed default accounts on cold start if table is empty
         try:
-            user_count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+            user_count = conn.execute("SELECT COUNT(*) FROM users").fetchone()['count']
             if user_count == 0:
                 demo_student_hash = generate_password_hash("Student@123")
                 conn.execute(
@@ -336,8 +280,8 @@ def init_db():
                     "INSERT INTO users (username, password_hash, email, name, role, email_verified, is_verified) VALUES (?, ?, ?, ?, ?, 1, 1)",
                     ("teacher", demo_teacher_hash, "teacher@smartcampus.edu", "Prof. Sharma", "teacher")
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Seed error: {e}")
 
 init_db()
 
@@ -510,7 +454,7 @@ def register():
                             name, username, password_hash, email, auth_provider, 
                             email_verified, is_verified, role, otp, otp_expiry, 
                             otp_attempts, otp_last_sent, created_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
                     ''', (
                         full_name, username, password_hash, email, 'local', 
                         0, 0, role, otp, otp_expiry, 
@@ -800,7 +744,7 @@ def google_verify_code():
                 suffix += 1
                 
             cursor = conn.execute(
-                'INSERT INTO users (username, password_hash, email, auth_provider, is_verified, role) VALUES (?, ?, ?, ?, ?, ?)',
+                'INSERT INTO users (username, password_hash, email, auth_provider, is_verified, role) VALUES (?, ?, ?, ?, ?, ?) RETURNING id',
                 (username, 'oauth_google_verified', email, 'google', 1, role)
             )
             user_id = cursor.lastrowid
@@ -917,7 +861,7 @@ def verify_otp():
                 username = f"User_{phone[-4:]}"
                 try:
                     cursor = conn.execute(
-                        'INSERT INTO users (username, password_hash, phone, auth_provider, is_verified, role) VALUES (?, ?, ?, ?, ?, ?)',
+                        'INSERT INTO users (username, password_hash, phone, auth_provider, is_verified, role) VALUES (?, ?, ?, ?, ?, ?) RETURNING id',
                         (username, 'oauth_no_password', phone, 'phone', 1, 'student')
                     )
                     user_id = cursor.lastrowid
@@ -926,7 +870,7 @@ def verify_otp():
                     # In case user suffix conflicts
                     username = f"User_{random.randint(1000,9999)}"
                     cursor = conn.execute(
-                        'INSERT INTO users (username, password_hash, phone, auth_provider, is_verified, role) VALUES (?, ?, ?, ?, ?, ?)',
+                        'INSERT INTO users (username, password_hash, phone, auth_provider, is_verified, role) VALUES (?, ?, ?, ?, ?, ?) RETURNING id',
                         (username, 'oauth_no_password', phone, 'phone', 1, 'student')
                     )
                     user_id = cursor.lastrowid
@@ -2205,7 +2149,7 @@ def student_join_test():
                     test_id, student_id, candidate_name, candidate_roll,
                     status, current_question, user_answers, review_flags,
                     score, max_score, percentage, time_spent, violations
-                ) VALUES (?, ?, ?, ?, 'in_progress', 0, '{}', '{}', 0, ?, 0, 0, 0)
+                ) VALUES (?, ?, ?, ?, 'in_progress', 0, '{}', '{}', 0, ?, 0, 0, 0) RETURNING id
             ''', (test['id'], session['user_id'], candidate_name, candidate_roll, test['total_marks']))
             attempt_id = cursor.lastrowid
 
