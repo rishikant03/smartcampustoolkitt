@@ -87,7 +87,9 @@
                 <!-- Username and Password Login Form -->
                 <form action="/login" method="POST" style="margin-top: 20px;">
                     <div class="form-group" style="margin-bottom: 20px;">
-                        <label for="username" style="font-weight: 600; font-size: 0.92rem; color: #f8fafc; margin-bottom: 8px; display: block;">Username or Email Address</label>
+                        <label for="username"
+                            style="font-weight: 600; font-size: 0.92rem; color: #f8fafc; margin-bottom: 8px; display: block;">Username
+                            or Email Address</label>
                         <div class="input-icon-wrapper">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -101,9 +103,11 @@
                     <div class="form-group">
                         <div
                             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <label for="password" style="font-weight: 600; font-size: 0.92rem; color: #f8fafc; margin-bottom: 0;">Password</label>
+                            <label for="password"
+                                style="font-weight: 600; font-size: 0.92rem; color: #f8fafc; margin-bottom: 0;">Password</label>
                             <a href="{{ url_for('forgot_password') }}"
-                                style="color: #10b981; font-size: 0.85rem; text-decoration: none; font-weight: 600;">Forgot password?</a>
+                                style="color: #10b981; font-size: 0.85rem; text-decoration: none; font-weight: 600;">Forgot
+                                password?</a>
                         </div>
                         <div class="input-icon-wrapper" style="position: relative;">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -112,13 +116,23 @@
                                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                             </svg>
                             <input type="password" id="password" name="password" class="input-with-icon"
-                                placeholder="Enter your password" required autocomplete="current-password" style="padding-right: 46px;">
-                            <button type="button" onclick="togglePasswordVisibility()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #94a3b8; padding: 4px; display: flex; align-items: center; transition: color 0.2s;" title="Show or hide password" id="togglePasswordBtn">
-                                <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                placeholder="Enter your password" required autocomplete="current-password"
+                                style="padding-right: 46px;">
+                            <button type="button" onclick="togglePasswordVisibility()"
+                                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #94a3b8; padding: 4px; display: flex; align-items: center; transition: color 0.2s;"
+                                title="Show or hide password" id="togglePasswordBtn">
+                                <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="19" height="19"
+                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
                             </button>
                         </div>
                     </div>
-                    <button type="submit" id="loginSubmitBtn" class="btn btn-primary btn-large" style="margin-top: 25px; padding: 14px; font-size: 1.05rem; font-weight: 800; border-radius: 12px;">Sign In &rarr;</button>
+                    <button type="submit" id="loginSubmitBtn" class="btn btn-primary btn-large"
+                        style="margin-top: 25px; padding: 14px; font-size: 1.05rem; font-weight: 800; border-radius: 12px;">Sign
+                        In &rarr;</button>
                 </form>
 
                 <div style="text-align: center; margin-top: 25px; line-height: 1.8;">

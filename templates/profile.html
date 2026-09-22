@@ -106,11 +106,7 @@
                 <div>
                     <h2 style="margin-bottom: 5px; display: flex; align-items: center; gap: 10px; color: #000000; font-weight: 800;">
                         {{ profile['full_name'] or user['username'] }}
-                        {% if user['is_verified'] %}
-                            <span class="badge badge-verified">✓ Verified Account</span>
-                        {% else %}
-                            <span class="badge badge-pending">Verification Pending</span>
-                        {% endif %}
+                            <span class="badge badge-verified">✓ Active Account</span>
                     </h2>
                     <p style="color: #4b5563; font-weight: 600;">
                         Joined: {{ profile['joined_date'][:10] if profile['joined_date'] else 'Recently' }} &bull; 

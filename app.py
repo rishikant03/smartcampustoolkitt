@@ -393,9 +393,6 @@ def verified_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
-        if not session.get('is_verified'):
-            flash('Your account is unverified. Please verify your email to access this feature.', 'error')
-            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
