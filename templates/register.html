@@ -5,9 +5,236 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Account - Smart Campus Toolkit</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        :root {
+            --primary: #10b981;
+            --primary-gradient: linear-gradient(135deg, #10b981 0%, #22c55e 100%);
+            --primary-hover: #059669;
+            --primary-glow: rgba(16, 185, 129, 0.35);
+            --background: #0f172a;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        body {
+            min-height: 100vh;
+            background: #090d16;
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+        }
+        .auth-split-container {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+            background: #090d16;
+        }
+        .auth-left {
+            flex: 1.1;
+            background: radial-gradient(circle at top left, #1e293b 0%, #090d16 100%);
+            padding: 80px 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            color: #ffffff;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .auth-right {
+            flex: 0.9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            background: #0f172a;
+        }
+        .auth-logo {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            color: #ffffff;
+            letter-spacing: -0.02em;
+        }
+        .auth-logo svg {
+            color: #10b981;
+            width: 44px;
+            height: 44px;
+            filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.5));
+        }
+        .auth-features {
+            list-style: none;
+            margin-top: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .auth-features li {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 1.05rem;
+            font-weight: 500;
+            color: #e2e8f0;
+            background: rgba(30, 41, 59, 0.6);
+            padding: 16px 22px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            transition: all 0.25s ease;
+        }
+        .auth-features li:hover {
+            border-color: rgba(16, 185, 129, 0.4);
+            transform: translateX(4px);
+        }
+        .auth-features li svg {
+            color: #10b981;
+            flex-shrink: 0;
+        }
+        .auth-card {
+            width: 100%;
+            max-width: 540px;
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 44px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            color: #f8fafc;
+        }
+        .auth-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            text-align: center;
+            color: #ffffff;
+            letter-spacing: -0.02em;
+        }
+        .auth-subtitle {
+            color: #94a3b8;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            color: #cbd5e1;
+        }
+        .input-icon-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .input-icon-wrapper svg {
+            position: absolute;
+            left: 16px;
+            color: #94a3b8;
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+        }
+        .input-with-icon {
+            width: 100%;
+            padding: 14px 16px 14px 48px !important;
+            background: #0f172a;
+            border: 1.5px solid #334155;
+            border-radius: 12px;
+            font-size: 1rem;
+            color: #ffffff;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .input-with-icon:focus {
+            border-color: #10b981;
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+        }
+        select.input-with-icon {
+            appearance: none;
+            cursor: pointer;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            border: none;
+            font-size: 1.05rem;
+            transition: all 0.25s ease;
+        }
+        .btn-large {
+            width: 100%;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff;
+            box-shadow: 0 4px 18px rgba(16, 185, 129, 0.4);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(16, 185, 129, 0.55);
+        }
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .flash {
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 0.92rem;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        .flash.error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+        }
+        .flash.success {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid #10b981;
+            color: #6ee7b7;
+        }
+        @media (max-width: 900px) {
+            .auth-split-container {
+                flex-direction: column;
+            }
+            .auth-left {
+                padding: 50px 30px;
+            }
+            .auth-right {
+                padding: 40px 20px;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
-<body style="margin:0; padding:0; background:var(--background);">
+<body style="margin:0; padding:0; background:#090d16;">
 
 <div class="auth-split-container">
     
