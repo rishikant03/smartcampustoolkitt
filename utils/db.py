@@ -84,7 +84,7 @@ class PgConnection:
         self.conn.close()
 
 def connect(*args, **kwargs):
-    db_url = os.getenv("DATABASE_URL")
+    db_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
     if not db_url:
-        raise Exception("DATABASE_URL environment variable is required")
+        raise Exception("DATABASE_URL or POSTGRES_URL environment variable is required")
     return PgConnection(db_url)
