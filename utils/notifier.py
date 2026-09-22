@@ -3,10 +3,17 @@ import re
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import httpx
-from dotenv import load_dotenv
 
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
+try:
+    import httpx
+except Exception:
+    httpx = None
 
 def send_email_otp(to_email: str, otp: str, subject: str = "Your Email Verification OTP") -> tuple[bool, str]:
     """

@@ -1,12 +1,18 @@
 import os
 import json
-import google.generativeai as genai
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
 
-load_dotenv()
-
-# Configure Gemini with the API key
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+try:
+    import google.generativeai as genai
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        genai.configure(api_key=api_key)
+except Exception:
+    genai = None
 
 def generate_questions(pdf_text: str, settings: dict) -> dict:
     """

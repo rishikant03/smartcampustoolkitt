@@ -1,10 +1,17 @@
 import json
 import random
 import os
-import google.generativeai as genai
-from dotenv import load_dotenv
 
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
+try:
+    import google.generativeai as genai
+except Exception:
+    genai = None
 
 MOCK_QUESTION_BANK = {
     "Computer Science": [

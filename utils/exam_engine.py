@@ -2,10 +2,17 @@ import json
 import random
 import re
 import os
-import google.generativeai as genai
-from dotenv import load_dotenv
 
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
+try:
+    import google.generativeai as genai
+except Exception:
+    genai = None
 
 def extract_chapters_and_topics(pdf_text: str) -> list[dict]:
     """

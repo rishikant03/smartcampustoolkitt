@@ -6,7 +6,11 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify, session
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
 import random
 import secrets
 import re
@@ -27,8 +31,6 @@ from utils.exam_engine import (
 import io
 import csv
 
-load_dotenv()
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
 STATIC_DIR = os.path.join(BASE_DIR, 'static')
@@ -45,21 +47,50 @@ if not secret_key:
 app.secret_key = secret_key
 app.config['SECRET_KEY'] = secret_key
 
-IS_VERCEL = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
-if IS_VERCEL:
+class VercelPathFix:
+    def __init__(self, wsgi_app):
+        self.wsgi_app = wsgi_app
+
+    def __call__(self, environ, start_response):
+        path = environ.get('PATH_INFO', '')
+        for prefix in ['/api/index.py', '/api/index', '/api']:
+            if path == prefix or path == prefix + '/':
+                environ['PATH_INFO'] = '/'
+                break
+            elif path.startswith(prefix + '/'):
+                environ['PATH_INFO'] = path[len(prefix):]
+                break
+
+        if not environ.get('PATH_INFO'):
+            environ['PATH_INFO'] = '/'
+
+        return self.wsgi_app(environ, start_response)
+
+app.wsgi_app = VercelPathFix(app.wsgi_app)
+
+# Safe folder creation for serverless (read-only filesystem)
+try:
+    if os.path.exists("/tmp") and os.name != 'nt':
+        UPLOAD_FOLDER = "/tmp/uploads"
+        GENERATED_FOLDER = "/tmp/generated"
+    else:
+        UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+        GENERATED_FOLDER = os.path.join(BASE_DIR, 'generated')
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    os.makedirs(GENERATED_FOLDER, exist_ok=True)
+except OSError:
     UPLOAD_FOLDER = "/tmp/uploads"
     GENERATED_FOLDER = "/tmp/generated"
-else:
-    UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
-    GENERATED_FOLDER = os.path.join(BASE_DIR, 'generated')
-    
-DB_PATH = "ignored" # Database handled by DATABASE_URL env var
+    try:
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        os.makedirs(GENERATED_FOLDER, exist_ok=True)
+    except Exception:
+        pass
+
+DB_PATH = "ignored" # Handled dynamically by utils.db
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max
-
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(GENERATED_FOLDER, exist_ok=True)
 
 def init_db():
     with sqlite3.connect(DB_PATH) as conn:
@@ -268,7 +299,8 @@ def init_db():
             
         # Seed default accounts on cold start if table is empty
         try:
-            user_count = conn.execute("SELECT COUNT(*) FROM users").fetchone()['count']
+            row = conn.execute("SELECT COUNT(*) AS count FROM users").fetchone()
+            user_count = row['count'] if (row and 'count' in row) else (row[0] if row else 0)
             if user_count == 0:
                 demo_student_hash = generate_password_hash("Student@123")
                 conn.execute(
@@ -283,7 +315,10 @@ def init_db():
         except Exception as e:
             print(f"Seed error: {e}")
 
-init_db()
+try:
+    init_db()
+except Exception as e:
+    print(f"init_db warning on startup: {e}")
 
 @app.errorhandler(500)
 @app.errorhandler(Exception)
