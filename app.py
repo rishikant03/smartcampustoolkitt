@@ -308,20 +308,33 @@ def init_db():
             )
         ''')
             
-        # Seed default accounts on cold start if table is empty
+        # Ensure default student and teacher accounts always exist with working credentials
         try:
-            row = conn.execute("SELECT COUNT(*) AS count FROM users").fetchone()
-            user_count = row['count'] if (row and 'count' in row) else (row[0] if row else 0)
-            if user_count == 0:
-                demo_student_hash = generate_password_hash("Student@123")
+            demo_student_hash = generate_password_hash("Student@123")
+            demo_teacher_hash = generate_password_hash("Teacher@123")
+
+            std = conn.execute("SELECT id FROM users WHERE LOWER(username) = 'student'").fetchone()
+            if not std:
                 conn.execute(
                     "INSERT INTO users (username, password_hash, email, name, role, email_verified, is_verified) VALUES (?, ?, ?, ?, ?, 1, 1)",
                     ("student", demo_student_hash, "student@smartcampus.edu", "Demo Student", "student")
                 )
-                demo_teacher_hash = generate_password_hash("Teacher@123")
+            else:
+                conn.execute(
+                    "UPDATE users SET password_hash = ?, email_verified = 1, is_verified = 1 WHERE LOWER(username) = 'student'",
+                    (demo_student_hash,)
+                )
+
+            tch = conn.execute("SELECT id FROM users WHERE LOWER(username) = 'teacher'").fetchone()
+            if not tch:
                 conn.execute(
                     "INSERT INTO users (username, password_hash, email, name, role, email_verified, is_verified) VALUES (?, ?, ?, ?, ?, 1, 1)",
                     ("teacher", demo_teacher_hash, "teacher@smartcampus.edu", "Prof. Sharma", "teacher")
+                )
+            else:
+                conn.execute(
+                    "UPDATE users SET password_hash = ?, email_verified = 1, is_verified = 1 WHERE LOWER(username) = 'teacher'",
+                    (demo_teacher_hash,)
                 )
         except Exception as e:
             print(f"Seed error: {e}")
@@ -409,17 +422,25 @@ def record_login(user_id, method):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '')
+        username = (request.form.get('username') or '').strip()
+        password = (request.form.get('password') or '').strip()
         with sqlite3.connect(DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
-            user = conn.execute('SELECT * FROM users WHERE username = ? OR email = ?', (username, username)).fetchone()
+            user = conn.execute(
+                'SELECT * FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)', 
+                (username, username)
+            ).fetchone()
         
         if user and check_password_hash(user['password_hash'], password):
             # Check if email is verified
             user_keys = user.keys()
             email_verified = user['email_verified'] if 'email_verified' in user_keys else 0
             is_verified = user['is_verified'] if 'is_verified' in user_keys else 0
+            
+            # Auto-verify demo accounts
+            if user['username'].lower() in ['student', 'teacher']:
+                email_verified = 1
+                is_verified = 1
             
             if not email_verified and not is_verified:
                 session['verify_email'] = user['email']
@@ -434,7 +455,7 @@ def login():
             flash('Logged in successfully.', 'success')
             return redirect(url_for('dashboard'))
         else:
-            flash('Invalid credentials. Please try again.', 'error')
+            flash('Invalid credentials. Please try again. (Demo accounts: student / Student@123 or teacher / Teacher@123)', 'error')
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -532,7 +553,7 @@ def register():
             if email_sent:
                 flash(f'Registration successful! A 6-digit verification code was sent to {email}.', 'success')
             else:
-                flash(f'Registration successful! {email_msg}', 'info')
+                flash(f'Registration successful! Your verification code is: {otp}', 'info')
                 
             return redirect(url_for('verify_email_page', email=email))
             
@@ -569,13 +590,16 @@ def verify_email_page():
             is_expired = False
             if user['otp_expiry']:
                 try:
-                    exp = datetime.datetime.strptime(user['otp_expiry'], '%Y-%m-%d %H:%M:%S')
+                    if isinstance(user['otp_expiry'], datetime.datetime):
+                        exp = user['otp_expiry']
+                    else:
+                        exp = datetime.datetime.strptime(str(user['otp_expiry'])[:19], '%Y-%m-%d %H:%M:%S')
                     if datetime.datetime.now() > exp:
                         is_expired = True
                 except Exception:
-                    is_expired = True
+                    is_expired = False
             else:
-                is_expired = True
+                is_expired = False
                 
             if is_expired or not user['otp']:
                 flash('OTP has expired. Please request a new OTP.', 'error')
