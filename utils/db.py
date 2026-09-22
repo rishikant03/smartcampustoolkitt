@@ -1,6 +1,12 @@
 import os
 import sys
 import re
+import sqlite3
+
+# Export standard sqlite3 attributes so app.py works seamlessly
+Row = sqlite3.Row
+DatabaseError = sqlite3.DatabaseError
+ProgrammingError = sqlite3.ProgrammingError
 
 # Try to import psycopg2; if missing (e.g. local machine or build step), fall back cleanly
 try:
@@ -12,12 +18,9 @@ try:
     OperationalError = psycopg2.OperationalError
 except ImportError:
     HAS_PSYCOPG2 = False
-    import sqlite3
     IntegrityError = sqlite3.IntegrityError
     Error = sqlite3.Error
     OperationalError = sqlite3.OperationalError
-
-import sqlite3
 
 
 def get_sqlite_path():
@@ -91,7 +94,15 @@ class PgCursor:
 class PgConnection:
     def __init__(self, db_url):
         self.conn = psycopg2.connect(db_url)
-        self.row_factory = None
+        self._row_factory = None
+
+    @property
+    def row_factory(self):
+        return self._row_factory
+
+    @row_factory.setter
+    def row_factory(self, value):
+        self._row_factory = value
 
     def __enter__(self):
         return self
@@ -157,7 +168,14 @@ class SqliteConnection:
             db_path = get_sqlite_path()
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
-        self.row_factory = sqlite3.Row
+
+    @property
+    def row_factory(self):
+        return self.conn.row_factory
+
+    @row_factory.setter
+    def row_factory(self, value):
+        self.conn.row_factory = value
 
     def __enter__(self):
         return self
