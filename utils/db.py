@@ -32,7 +32,17 @@ def get_sqlite_path():
         or (os.name != 'nt' and os.path.exists("/tmp"))
     )
     if is_serverless:
-        return "/tmp/smartcampus.db"
+        target_path = "/tmp/smartcampus.db"
+        if not os.path.exists(target_path):
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            source_path = os.path.join(base_dir, "smartcampus.db")
+            if os.path.exists(source_path):
+                import shutil
+                try:
+                    shutil.copy2(source_path, target_path)
+                except Exception:
+                    pass
+        return target_path
     
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_dir, "smartcampus.db")
@@ -141,6 +151,9 @@ class SqliteCursor:
         if '%s' in q and '?' not in q:
             q = q.replace('%s', '?')
 
+        # Strip RETURNING id for SQLite so SQLite doesn't leave unconsumed statement cursors
+        q = re.sub(r'\s+RETURNING\s+id\b', '', q, flags=re.IGNORECASE)
+
         self._cursor.execute(q, params)
         self.lastrowid = self._cursor.lastrowid
         return self
@@ -157,6 +170,12 @@ class SqliteCursor:
         except Exception:
             return []
 
+    def close(self):
+        try:
+            self._cursor.close()
+        except Exception:
+            pass
+
     @property
     def rowcount(self):
         return self._cursor.rowcount
@@ -168,6 +187,7 @@ class SqliteConnection:
             db_path = get_sqlite_path()
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
+        self._cursors = []
 
     @property
     def row_factory(self):
@@ -181,14 +201,33 @@ class SqliteConnection:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if exc_type is None:
-            self.conn.commit()
-        else:
-            self.conn.rollback()
-        self.conn.close()
+        for c in self._cursors:
+            try:
+                c.close()
+            except Exception:
+                pass
+        self._cursors.clear()
+
+        try:
+            if exc_type is None:
+                self.conn.commit()
+            else:
+                self.conn.rollback()
+        except Exception as e:
+            try:
+                self.conn.rollback()
+            except Exception:
+                pass
+        finally:
+            try:
+                self.conn.close()
+            except Exception:
+                pass
 
     def execute(self, query, params=()):
-        cur = SqliteCursor(self.conn.cursor())
+        c = self.conn.cursor()
+        self._cursors.append(c)
+        cur = SqliteCursor(c)
         return cur.execute(query, params)
 
     def commit(self):

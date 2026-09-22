@@ -427,6 +427,11 @@ def login():
     if request.method == 'POST':
         username = (request.form.get('username') or '').strip()
         password = (request.form.get('password') or '').strip()
+        
+        if not username or not password:
+            flash('Please enter both username or email and password.', 'error')
+            return render_template('login.html')
+            
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.row_factory = sqlite3.Row
@@ -436,30 +441,17 @@ def login():
                 ).fetchone()
             
             if user and check_password_hash(user['password_hash'], password):
-                # Check if email is verified
-                user_keys = user.keys()
-                email_verified = user['email_verified'] if 'email_verified' in user_keys else 0
-                is_verified = user['is_verified'] if 'is_verified' in user_keys else 0
-                
-                # Auto-verify demo accounts
-                if user['username'].lower() in ['student', 'teacher']:
-                    email_verified = 1
-                    is_verified = 1
-                
-                if not email_verified and not is_verified:
-                    session['verify_email'] = user['email']
-                    flash('Please verify your email before logging in.', 'error')
-                    return redirect(url_for('verify_email_page', email=user['email']))
-                    
                 session['user_id'] = user['id']
                 session['username'] = user['username']
-                session['is_verified'] = True
                 session['role'] = user['role']
+                session['is_verified'] = True
                 record_login(user['id'], 'password')
                 flash('Logged in successfully.', 'success')
+                if user['role'] == 'teacher':
+                    return redirect(url_for('teacher_dashboard'))
                 return redirect(url_for('dashboard'))
             else:
-                flash('Invalid credentials. Please try again. (Demo accounts: student / Student@123 or teacher / Teacher@123)', 'error')
+                flash('Invalid username or password. Please try again.', 'error')
         except Exception as e:
             print(f"[Login Error] {e}")
             flash('A database connection issue occurred. Please try again in a few seconds.', 'error')
@@ -494,78 +486,58 @@ def register():
             
         # Secure password hash
         password_hash = generate_password_hash(password)
-        
-        # Generate cryptographically secure 6-digit OTP
-        otp = f"{secrets.randbelow(900000) + 100000}"
-        otp_expiry = (datetime.datetime.now() + datetime.timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S')
         now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.row_factory = sqlite3.Row
-                existing_user = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+                existing_user = conn.execute(
+                    'SELECT * FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?)', 
+                    (email, username or email)
+                ).fetchone()
                 
                 if existing_user:
-                    # If already verified, reject duplicate registration
-                    if existing_user['email_verified'] or existing_user['is_verified']:
-                        flash('An account with this email already exists. Please log in.', 'error')
-                        return redirect(url_for('login'))
-                    else:
-                        # Re-send verification for existing unverified user
-                        user_id = existing_user['id']
-                        conn.execute('''
-                            UPDATE users 
-                            SET name = ?, password_hash = ?, role = ?, otp = ?, otp_expiry = ?, 
-                                otp_attempts = 0, otp_last_sent = ?, email_verified = 0, is_verified = 0 
-                            WHERE id = ?
-                        ''', (full_name, password_hash, role, otp, otp_expiry, now_str, user_id))
-                else:
-                    # Create clean unique username if not provided
-                    if not username:
-                        base_uname = re.sub(r'[^a-zA-Z0-9_]', '', full_name.lower().replace(' ', '_')) or email.split('@')[0]
-                        username = base_uname
-                        
-                    suffix = 1
-                    original_username = username
-                    while conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone():
-                        username = f"{original_username}_{suffix}"
-                        suffix += 1
-                        
-                    cursor = conn.execute('''
-                        INSERT INTO users (
-                            name, username, password_hash, email, auth_provider, 
-                            email_verified, is_verified, role, otp, otp_expiry, 
-                            otp_attempts, otp_last_sent, created_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
-                    ''', (
-                        full_name, username, password_hash, email, 'local', 
-                        0, 0, role, otp, otp_expiry, 
-                        0, now_str, now_str
-                    ))
-                    user_id = cursor.lastrowid
-                    conn.execute('INSERT OR IGNORE INTO user_profiles (user_id, full_name) VALUES (?, ?)', (user_id, full_name))
+                    flash('An account with this email or username already exists. Please log in.', 'error')
+                    return redirect(url_for('login'))
                 
-                # Send 6-digit OTP email
-                email_sent, email_msg = send_email_otp(email, otp)
-                session['verify_email'] = email
+                # Create clean unique username if not provided
+                if not username:
+                    base_uname = re.sub(r'[^a-zA-Z0-9_]', '', full_name.lower().replace(' ', '_')) or email.split('@')[0]
+                    username = base_uname
+                    
+                suffix = 1
+                original_username = username
+                while conn.execute('SELECT id FROM users WHERE LOWER(username) = LOWER(?)', (username,)).fetchone():
+                    username = f"{original_username}_{suffix}"
+                    suffix += 1
+                    
+                cursor = conn.execute('''
+                    INSERT INTO users (
+                        name, username, password_hash, email, auth_provider, 
+                        email_verified, is_verified, role, otp, otp_expiry, 
+                        otp_attempts, otp_last_sent, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+                ''', (
+                    full_name, username, password_hash, email, 'local', 
+                    1, 1, role, None, None, 
+                    0, now_str, now_str
+                ))
+                user_id = cursor.lastrowid
+                conn.execute('INSERT OR IGNORE INTO user_profiles (user_id, full_name) VALUES (?, ?)', (user_id, full_name))
                 
-                print(f"\n\n{'='*50}")
-                print(f"[REGISTRATION 6-DIGIT OTP DISPATCH]")
-                print(f"Candidate Email: {email}")
-                print(f"Generated 6-Digit OTP: {otp}")
-                print(f"Expires In: 5 minutes ({otp_expiry})")
-                print(f"SMTP Status: {email_msg}")
-                print(f"{'='*50}\n\n")
-                
-            if email_sent:
-                flash(f'Registration successful! A 6-digit verification code was sent to {email}.', 'success')
-            else:
-                flash(f'Registration successful! Your verification code is: {otp}', 'info')
-                
-            return redirect(url_for('verify_email_page', email=email))
+            session['user_id'] = user_id
+            session['username'] = username
+            session['role'] = role
+            session['is_verified'] = True
+            record_login(user_id, 'registration')
+            flash(f'Account created successfully! Welcome, {full_name}.', 'success')
+            if role == 'teacher':
+                return redirect(url_for('teacher_dashboard'))
+            return redirect(url_for('dashboard'))
             
         except sqlite3.IntegrityError as e:
-            flash('Username or Email already registered.', 'error')
+            flash('Username or Email already registered. Please sign in.', 'error')
+            return redirect(url_for('login'))
             
     return render_template('register.html')
 
