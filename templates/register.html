@@ -4,19 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Account - Smart Campus Toolkit</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
     <style>
         :root {
             --primary: #10b981;
-            --primary-gradient: linear-gradient(135deg, #10b981 0%, #22c55e 100%);
+            --primary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
             --primary-hover: #059669;
             --primary-glow: rgba(16, 185, 129, 0.35);
-            --background: #0f172a;
+            --background: #ffffff;
             --surface: #ffffff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
+            --text-main: #000000;
+            --text-muted: #52525b;
+            --border: #000000;
             --radius: 16px;
         }
         * {
@@ -27,8 +27,8 @@
         }
         body {
             min-height: 100vh;
-            background: #090d16;
-            color: #f8fafc;
+            background: #ffffff;
+            color: #000000;
             margin: 0;
             padding: 0;
         }
@@ -36,17 +36,17 @@
             display: flex;
             min-height: 100vh;
             width: 100%;
-            background: #090d16;
+            background: #ffffff;
         }
         .auth-left {
             flex: 1.1;
-            background: radial-gradient(circle at top left, #1e293b 0%, #090d16 100%);
+            background: #ffffff;
             padding: 80px 60px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            color: #ffffff;
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            color: #000000;
+            border-right: 2px solid #000000;
         }
         .auth-right {
             flex: 0.9;
@@ -54,7 +54,7 @@
             align-items: center;
             justify-content: center;
             padding: 40px;
-            background: #0f172a;
+            background: #ffffff;
         }
         .auth-logo {
             display: flex;
@@ -63,18 +63,26 @@
             font-size: 2.2rem;
             font-weight: 800;
             margin-bottom: 20px;
-            color: #ffffff;
+            color: #000000;
             letter-spacing: -0.02em;
         }
         .auth-logo svg {
             color: #10b981;
             width: 44px;
             height: 44px;
-            filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.5));
+            filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.4));
+        }
+        .auth-tagline {
+            font-size: 1.15rem;
+            color: #000000;
+            font-weight: 500;
+            max-width: 500px;
+            margin-bottom: 24px;
+            line-height: 1.6;
         }
         .auth-features {
             list-style: none;
-            margin-top: 40px;
+            margin-top: 30px;
             display: flex;
             flex-direction: column;
             gap: 16px;
@@ -84,18 +92,19 @@
             align-items: center;
             gap: 16px;
             font-size: 1.05rem;
-            font-weight: 500;
-            color: #e2e8f0;
-            background: rgba(30, 41, 59, 0.6);
+            font-weight: 600;
+            color: #000000;
+            background: #ffffff;
             padding: 16px 22px;
             border-radius: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(10px);
+            border: 2px solid #000000;
             transition: all 0.25s ease;
         }
         .auth-features li:hover {
-            border-color: rgba(16, 185, 129, 0.4);
-            transform: translateX(4px);
+            border-color: #10b981;
+            color: #047857;
+            transform: translateX(6px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.15);
         }
         .auth-features li svg {
             color: #10b981;
@@ -104,26 +113,27 @@
         .auth-card {
             width: 100%;
             max-width: 540px;
-            background: #1e293b;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: #ffffff;
+            border: 2px solid #000000;
             border-radius: 24px;
             padding: 44px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            color: #f8fafc;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08);
+            color: #000000;
         }
         .auth-title {
             font-size: 2.2rem;
             font-weight: 800;
             margin-bottom: 8px;
             text-align: center;
-            color: #ffffff;
+            color: #000000;
             letter-spacing: -0.02em;
         }
         .auth-subtitle {
-            color: #94a3b8;
+            color: #52525b;
             text-align: center;
             margin-bottom: 25px;
             font-size: 1rem;
+            font-weight: 500;
         }
         .form-grid {
             display: grid;
@@ -136,42 +146,79 @@
             margin-bottom: 18px;
         }
         .form-group label {
-            font-weight: 600;
+            font-weight: 700;
             margin-bottom: 8px;
             font-size: 0.95rem;
-            color: #cbd5e1;
+            color: #000000;
         }
         .input-icon-wrapper {
             position: relative;
             display: flex;
             align-items: center;
+            width: 100%;
         }
-        .input-icon-wrapper svg {
+        .input-icon-wrapper > svg {
             position: absolute;
-            left: 16px;
-            color: #94a3b8;
+            left: 15px;
+            color: #000000;
             width: 20px;
             height: 20px;
             pointer-events: none;
+            z-index: 1;
         }
         .input-with-icon {
             width: 100%;
-            padding: 14px 16px 14px 48px !important;
-            background: #0f172a;
-            border: 1.5px solid #334155;
+            padding: 14px 48px 14px 45px !important;
+            background: #ffffff;
+            border: 2px solid #000000;
             border-radius: 12px;
             font-size: 1rem;
-            color: #ffffff;
+            color: #000000;
             outline: none;
             transition: all 0.2s ease;
+            box-sizing: border-box;
         }
         .input-with-icon:focus {
             border-color: #10b981;
-            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
         }
         select.input-with-icon {
             appearance: none;
             cursor: pointer;
+        }
+        .password-toggle-btn {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #52525b;
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            margin: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            line-height: 1;
+        }
+        .password-toggle-btn svg {
+            position: static !important;
+            left: auto !important;
+            right: auto !important;
+            top: auto !important;
+            transform: none !important;
+            width: 20px !important;
+            height: 20px !important;
+            color: #52525b !important;
+            display: block !important;
+            transition: color 0.2s ease;
+        }
+        .password-toggle-btn:hover svg {
+            color: #10b981 !important;
         }
         .btn {
             display: inline-flex;
@@ -179,10 +226,10 @@
             justify-content: center;
             padding: 14px 28px;
             border-radius: 12px;
-            font-weight: 700;
+            font-weight: 800;
             cursor: pointer;
             text-decoration: none;
-            border: none;
+            border: 2px solid #000000;
             font-size: 1.05rem;
             transition: all 0.25s ease;
         }
@@ -190,13 +237,14 @@
             width: 100%;
         }
         .btn-primary {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: #10b981;
             color: #ffffff;
-            box-shadow: 0 4px 18px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
         }
         .btn-primary:hover {
+            background: #059669;
             transform: translateY(-2px);
-            box-shadow: 0 6px 24px rgba(16, 185, 129, 0.55);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
         }
         .flash-messages {
             margin-bottom: 20px;
@@ -206,17 +254,17 @@
             border-radius: 10px;
             font-size: 0.92rem;
             margin-bottom: 10px;
-            font-weight: 500;
+            font-weight: 600;
         }
         .flash.error {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid #ef4444;
-            color: #fca5a5;
+            background: #fef2f2;
+            border: 1.5px solid #ef4444;
+            color: #991b1b;
         }
         .flash.success {
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid #10b981;
-            color: #6ee7b7;
+            background: #f0fdf4;
+            border: 1.5px solid #10b981;
+            color: #065f46;
         }
         @media (max-width: 900px) {
             .auth-split-container {
@@ -224,6 +272,8 @@
             }
             .auth-left {
                 padding: 50px 30px;
+                border-right: none;
+                border-bottom: 2px solid #000000;
             }
             .auth-right {
                 padding: 40px 20px;
@@ -234,7 +284,7 @@
         }
     </style>
 </head>
-<body style="margin:0; padding:0; background:#090d16;">
+<body>
 
 <div class="auth-split-container">
     
@@ -248,7 +298,7 @@
             </svg>
             Smart Campus Toolkit
         </div>
-        <p style="font-size: 1.2rem; color: #cbd5e1; max-width: 500px; margin-bottom: 20px;">
+        <p class="auth-tagline">
             Join thousands of students and teachers using AI to transform education. Start your journey today.
         </p>
         
@@ -270,7 +320,7 @@
 
     <!-- RIGHT: Auth Form -->
     <div class="auth-right">
-        <div class="auth-card" style="max-width: 550px;">
+        <div class="auth-card">
             <h1 class="auth-title">Create Account</h1>
             <p class="auth-subtitle">Join the platform as a student, teacher, or administrator.</p>
 
@@ -303,32 +353,44 @@
                     </div>
                     <div class="form-group">
                         <label for="role">Select Your Role</label>
-                        <select id="role" name="role" required style="width: 100%; padding: 14px 16px; border: 1.5px solid #000000; border-radius: 10px; background: #ffffff; color: #000000; font-size: 1rem; outline: none; font-weight: 600;">
-                            <option value="student" style="background: #ffffff; color: #000000;">Student</option>
-                            <option value="teacher" style="background: #ffffff; color: #000000;">Teacher</option>
-                            <option value="admin" style="background: #ffffff; color: #000000;">Administrator</option>
+                        <select id="role" name="role" required class="input-with-icon" style="padding-left: 16px !important; border: 2px solid #000000; font-weight: 600;">
+                            <option value="student">Student</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="admin">Administrator</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 20px;">
                     <label for="password">Password</label>
-                    <div class="input-icon-wrapper">
+                    <div class="input-icon-wrapper" style="position: relative;">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                        <input type="password" id="password" name="password" class="input-with-icon" placeholder="At least 8 characters" required>
+                        <input type="password" id="password" name="password" class="input-with-icon" placeholder="At least 8 characters" required style="padding-right: 48px;">
+                        <button type="button" onclick="toggleRegisterPassword('password', 'eyeIconPassword')" class="password-toggle-btn" title="Show or hide password" id="togglePasswordBtn" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; color: #52525b; width: 30px; height: 30px; padding: 0; margin: 0; display: inline-flex; align-items: center; justify-content: center; z-index: 5;">
+                            <svg id="eyeIconPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: static !important; left: auto !important; right: auto !important; top: auto !important; transform: none !important; width: 20px !important; height: 20px !important; display: block !important; margin: 0 !important;">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
                     </div>
-                    <div id="passwordRequirements" style="display:none; color: #000000; background: #f8fafc; border: 1.5px solid #000000; padding: 8px 12px; border-radius: 8px; margin-top: 8px; font-size: 0.82rem; line-height: 1.4;">
+                    <div id="passwordRequirements" style="display:none; color: #065f46; background: #f0fdf4; border: 1.5px solid #10b981; padding: 8px 12px; border-radius: 8px; margin-top: 8px; font-size: 0.85rem; line-height: 1.4; font-weight: 600;">
                         Must contain at least 8 characters.
                     </div>
                 </div>
                 
                 <div class="form-group" style="margin-bottom: 25px;">
                     <label for="confirm_password">Confirm Password</label>
-                    <div class="input-icon-wrapper">
+                    <div class="input-icon-wrapper" style="position: relative;">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                        <input type="password" id="confirm_password" name="confirm_password" class="input-with-icon" placeholder="Re-enter your password" required>
+                        <input type="password" id="confirm_password" name="confirm_password" class="input-with-icon" placeholder="Re-enter your password" required style="padding-right: 48px;">
+                        <button type="button" onclick="toggleRegisterPassword('confirm_password', 'eyeIconConfirmPassword')" class="password-toggle-btn" title="Show or hide password" id="toggleConfirmPasswordBtn" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; color: #52525b; width: 30px; height: 30px; padding: 0; margin: 0; display: inline-flex; align-items: center; justify-content: center; z-index: 5;">
+                            <svg id="eyeIconConfirmPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: static !important; left: auto !important; right: auto !important; top: auto !important; transform: none !important; width: 20px !important; height: 20px !important; display: block !important; margin: 0 !important;">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
                     </div>
-                    <div id="passwordMatch" style="display:none; color: #991b1b; background: #fef2f2; border: 1.5px solid #ef4444; padding: 6px 12px; border-radius: 8px; margin-top: 8px; font-size: 0.82rem; font-weight: 600;">
+                    <div id="passwordMatch" style="display:none; color: #991b1b; background: #fef2f2; border: 1.5px solid #ef4444; padding: 6px 12px; border-radius: 8px; margin-top: 8px; font-size: 0.85rem; font-weight: 600;">
                         Passwords do not match.
                     </div>
                 </div>
@@ -336,8 +398,8 @@
                 <button type="submit" id="submitBtn" class="btn btn-primary btn-large" style="margin-top: 10px;">Create Account &rarr;</button>
             </form>
 
-            <div style="text-align: center; margin-top: 30px;">
-                <p style="color: var(--text-muted);">Already have an account? <a href="{{ url_for('login') }}" style="color: #10b981; text-decoration: none; font-weight: 700;">Sign in</a></p>
+            <div style="text-align: center; margin-top: 28px;">
+                <p style="color: #000000; font-weight: 500; font-size: 0.95rem;">Already have an account? <a href="{{ url_for('login') }}" style="color: #10b981; text-decoration: none; font-weight: 800;">Sign in</a></p>
             </div>
         </div>
     </div>
@@ -349,6 +411,19 @@
     const requirements = document.getElementById('passwordRequirements');
     const matchWarning = document.getElementById('passwordMatch');
     const form = document.getElementById('registerForm');
+
+    function toggleRegisterPassword(fieldId, iconId) {
+        var pwd = document.getElementById(fieldId);
+        var eye = document.getElementById(iconId);
+        if (!pwd || !eye) return;
+        if (pwd.type === 'password') {
+            pwd.type = 'text';
+            eye.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+        } else {
+            pwd.type = 'password';
+            eye.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+        }
+    }
     
     function validatePassword() {
         if (password.value.length > 0 && password.value.length < 8) {
