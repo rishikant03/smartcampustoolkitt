@@ -411,51 +411,58 @@ def teacher_required(f):
     return decorated_function
 
 def record_login(user_id, method):
-    ip = request.remote_addr
-    device = request.user_agent.string
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute('INSERT INTO login_history (user_id, ip_address, device, method) VALUES (?, ?, ?, ?)',
-                     (user_id, ip, device, method))
-        conn.execute('INSERT OR IGNORE INTO user_profiles (user_id) VALUES (?)', (user_id,))
-        conn.execute('UPDATE user_profiles SET last_login_time = CURRENT_TIMESTAMP WHERE user_id = ?', (user_id,))
+    try:
+        ip = request.remote_addr or '127.0.0.1'
+        device = getattr(request.user_agent, 'string', '') or 'Unknown'
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute('INSERT INTO login_history (user_id, ip_address, device, method) VALUES (?, ?, ?, ?)',
+                         (user_id, ip, device, method))
+            conn.execute('INSERT OR IGNORE INTO user_profiles (user_id) VALUES (?)', (user_id,))
+            conn.execute('UPDATE user_profiles SET last_login_time = CURRENT_TIMESTAMP WHERE user_id = ?', (user_id,))
+    except Exception as e:
+        print(f"[Warning] record_login failed: {e}")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = (request.form.get('username') or '').strip()
         password = (request.form.get('password') or '').strip()
-        with sqlite3.connect(DB_PATH) as conn:
-            conn.row_factory = sqlite3.Row
-            user = conn.execute(
-                'SELECT * FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)', 
-                (username, username)
-            ).fetchone()
-        
-        if user and check_password_hash(user['password_hash'], password):
-            # Check if email is verified
-            user_keys = user.keys()
-            email_verified = user['email_verified'] if 'email_verified' in user_keys else 0
-            is_verified = user['is_verified'] if 'is_verified' in user_keys else 0
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.row_factory = sqlite3.Row
+                user = conn.execute(
+                    'SELECT * FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)', 
+                    (username, username)
+                ).fetchone()
             
-            # Auto-verify demo accounts
-            if user['username'].lower() in ['student', 'teacher']:
-                email_verified = 1
-                is_verified = 1
-            
-            if not email_verified and not is_verified:
-                session['verify_email'] = user['email']
-                flash('Please verify your email before logging in.', 'error')
-                return redirect(url_for('verify_email_page', email=user['email']))
+            if user and check_password_hash(user['password_hash'], password):
+                # Check if email is verified
+                user_keys = user.keys()
+                email_verified = user['email_verified'] if 'email_verified' in user_keys else 0
+                is_verified = user['is_verified'] if 'is_verified' in user_keys else 0
                 
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            session['is_verified'] = True
-            session['role'] = user['role']
-            record_login(user['id'], 'password')
-            flash('Logged in successfully.', 'success')
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid credentials. Please try again. (Demo accounts: student / Student@123 or teacher / Teacher@123)', 'error')
+                # Auto-verify demo accounts
+                if user['username'].lower() in ['student', 'teacher']:
+                    email_verified = 1
+                    is_verified = 1
+                
+                if not email_verified and not is_verified:
+                    session['verify_email'] = user['email']
+                    flash('Please verify your email before logging in.', 'error')
+                    return redirect(url_for('verify_email_page', email=user['email']))
+                    
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                session['is_verified'] = True
+                session['role'] = user['role']
+                record_login(user['id'], 'password')
+                flash('Logged in successfully.', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                flash('Invalid credentials. Please try again. (Demo accounts: student / Student@123 or teacher / Teacher@123)', 'error')
+        except Exception as e:
+            print(f"[Login Error] {e}")
+            flash('A database connection issue occurred. Please try again in a few seconds.', 'error')
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
