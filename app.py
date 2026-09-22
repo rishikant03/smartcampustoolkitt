@@ -947,6 +947,11 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/')
+def home():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    return render_template('login.html')
+
 @app.route('/dashboard')
 @login_required
 def dashboard():

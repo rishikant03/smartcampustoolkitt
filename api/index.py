@@ -16,12 +16,16 @@ class VercelPathFix:
         path = environ.get('PATH_INFO', '')
         # Handle all possible Vercel serverless prefix rewrites
         for prefix in ['/api/index.py', '/api/index', '/api']:
-            if path == prefix:
+            if path == prefix or path == prefix + '/':
                 environ['PATH_INFO'] = '/'
                 break
             elif path.startswith(prefix + '/'):
                 environ['PATH_INFO'] = path[len(prefix):]
                 break
+
+        if not environ.get('PATH_INFO'):
+            environ['PATH_INFO'] = '/'
+
         return self.wsgi_app(environ, start_response)
 
 app.wsgi_app = VercelPathFix(app.wsgi_app)
