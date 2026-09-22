@@ -404,8 +404,6 @@ def record_login(user_id, method):
         conn.execute('UPDATE user_profiles SET last_login_time = CURRENT_TIMESTAMP WHERE user_id = ?', (user_id,))
 
 @app.route('/login', methods=['GET', 'POST'])
-@app.route('/api/login', methods=['GET', 'POST'])
-@app.route('/api/index.py/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -437,8 +435,6 @@ def login():
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
-@app.route('/api/register', methods=['GET', 'POST'])
-@app.route('/api/index.py/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         full_name = (request.form.get('name') or request.form.get('full_name') or '').strip()
@@ -956,11 +952,13 @@ def logout():
     flash('You have been logged out.', 'success')
     return redirect(url_for('login'))
 
-@app.route('/')
-@app.route('/api')
-@app.route('/api/index')
-@app.route('/api/index.py')
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/api', methods=['GET', 'POST'])
+@app.route('/api/index', methods=['GET', 'POST'])
+@app.route('/api/index.py', methods=['GET', 'POST'])
 def home():
+    if request.method == 'POST':
+        return login()
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
     return render_template('login.html')
