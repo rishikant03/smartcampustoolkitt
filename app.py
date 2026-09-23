@@ -100,6 +100,13 @@ except OSError:
 
 DB_PATH = "ignored" # Handled dynamically by utils.db
 
+AVATAR_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads', 'avatars')
+try:
+    os.makedirs(AVATAR_FOLDER, exist_ok=True)
+except Exception:
+    pass
+app.config['AVATAR_FOLDER'] = AVATAR_FOLDER
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max
 
@@ -307,6 +314,24 @@ def init_db():
                 FOREIGN KEY (teacher_id) REFERENCES users (id)
             )
         ''')
+        
+        # Ensure column migrations for papers and user_profiles
+        try:
+            conn.execute('ALTER TABLE papers ADD COLUMN user_id INTEGER')
+        except Exception:
+            pass
+        try:
+            conn.execute('ALTER TABLE papers ADD COLUMN created_at TIMESTAMP')
+        except Exception:
+            pass
+        try:
+            conn.execute('ALTER TABLE user_profiles ADD COLUMN bio TEXT')
+        except Exception:
+            pass
+        try:
+            conn.execute('ALTER TABLE user_profiles ADD COLUMN department TEXT')
+        except Exception:
+            pass
             
         # Ensure default student and teacher accounts always exist with working credentials
         try:
@@ -343,6 +368,21 @@ try:
     init_db()
 except Exception as e:
     print(f"init_db warning on startup: {e}")
+
+@app.before_request
+def load_user_profile_context():
+    if session.get('user_id') and 'profile_photo' not in session:
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.row_factory = sqlite3.Row
+                prof = conn.execute('SELECT profile_photo, full_name FROM user_profiles WHERE user_id = ?', (session['user_id'],)).fetchone()
+                if prof:
+                    session['profile_photo'] = prof['profile_photo']
+                    session['full_name'] = prof['full_name']
+                else:
+                    session['profile_photo'] = None
+        except Exception:
+            session['profile_photo'] = None
 
 @app.errorhandler(500)
 @app.errorhandler(Exception)
@@ -1023,10 +1063,193 @@ def profile():
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
-        profile = conn.execute('SELECT * FROM user_profiles WHERE user_id = ?', (session['user_id'],)).fetchone()
-        history = conn.execute('SELECT * FROM login_history WHERE user_id = ? ORDER BY login_time DESC LIMIT 5', (session['user_id'],)).fetchall()
+        profile_data = conn.execute('SELECT * FROM user_profiles WHERE user_id = ?', (session['user_id'],)).fetchone()
+        if not profile_data:
+            conn.execute('INSERT OR IGNORE INTO user_profiles (user_id, full_name) VALUES (?, ?)', (session['user_id'], user['name'] or user['username']))
+            profile_data = conn.execute('SELECT * FROM user_profiles WHERE user_id = ?', (session['user_id'],)).fetchone()
+            
+        history = conn.execute('SELECT * FROM login_history WHERE user_id = ? ORDER BY login_time DESC LIMIT 10', (session['user_id'],)).fetchall()
         
-    return render_template('profile.html', user=user, profile=profile, history=history)
+        user_papers = []
+        try:
+            p_rows = conn.execute('SELECT id, filename, settings, created_at FROM papers WHERE user_id = ? ORDER BY rowid DESC LIMIT 10', (session['user_id'],)).fetchall()
+            for r in p_rows:
+                s = json.loads(r['settings']) if r['settings'] else {}
+                user_papers.append({
+                    'id': r['id'],
+                    'filename': r['filename'],
+                    'subject': s.get('subject', 'Untitled'),
+                    'chapter': s.get('chapter', ''),
+                    'exam_name': s.get('exam_name', 'General Exam'),
+                    'total_marks': s.get('total_marks', 50),
+                    'created_at': r['created_at'] if 'created_at' in r.keys() and r['created_at'] else 'Recently'
+                })
+        except Exception:
+            pass
+
+    return render_template('profile.html', user=user, profile=profile_data, history=history, papers=user_papers)
+
+@app.route('/profile/update', methods=['POST'])
+@login_required
+def update_profile():
+    full_name = (request.form.get('full_name') or request.form.get('name') or '').strip()
+    phone = (request.form.get('phone') or '').strip()
+    bio = (request.form.get('bio') or '').strip()
+    department = (request.form.get('department') or '').strip()
+    
+    avatar_url = None
+    if 'profile_photo' in request.files:
+        file = request.files['profile_photo']
+        if file and file.filename != '':
+            ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+            if ext in {'png', 'jpg', 'jpeg', 'webp', 'gif'}:
+                avatar_dir = os.path.join(app.root_path, 'static', 'uploads', 'avatars')
+                os.makedirs(avatar_dir, exist_ok=True)
+                fname = f"avatar_{session['user_id']}_{uuid.uuid4().hex[:6]}.{ext}"
+                filepath = os.path.join(avatar_dir, fname)
+                file.save(filepath)
+                avatar_url = f"/static/uploads/avatars/{fname}"
+                session['profile_photo'] = avatar_url
+            else:
+                flash('Please upload an image file (PNG, JPG, JPEG, WEBP).', 'error')
+                return redirect(url_for('profile'))
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        conn.execute('INSERT OR IGNORE INTO user_profiles (user_id, full_name) VALUES (?, ?)', (session['user_id'], full_name or session['username']))
+        
+        if avatar_url:
+            try:
+                conn.execute(
+                    'UPDATE user_profiles SET full_name = ?, profile_photo = ?, bio = ?, department = ? WHERE user_id = ?',
+                    (full_name, avatar_url, bio, department, session['user_id'])
+                )
+            except Exception:
+                conn.execute(
+                    'UPDATE user_profiles SET full_name = ?, profile_photo = ? WHERE user_id = ?',
+                    (full_name, avatar_url, session['user_id'])
+                )
+        else:
+            try:
+                conn.execute(
+                    'UPDATE user_profiles SET full_name = ?, bio = ?, department = ? WHERE user_id = ?',
+                    (full_name, bio, department, session['user_id'])
+                )
+            except Exception:
+                conn.execute(
+                    'UPDATE user_profiles SET full_name = ? WHERE user_id = ?',
+                    (full_name, session['user_id'])
+                )
+                
+        if full_name or phone:
+            conn.execute(
+                'UPDATE users SET name = COALESCE(NULLIF(?, ""), name), phone = COALESCE(NULLIF(?, ""), phone) WHERE id = ?',
+                (full_name, phone, session['user_id'])
+            )
+
+    if full_name:
+        session['full_name'] = full_name
+        
+    flash('Profile updated successfully!', 'success')
+    return redirect(url_for('profile'))
+
+@app.route('/profile/delete-photo', methods=['POST'])
+@login_required
+def delete_profile_photo():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute('UPDATE user_profiles SET profile_photo = NULL WHERE user_id = ?', (session['user_id'],))
+    session.pop('profile_photo', None)
+    flash('Profile photo removed.', 'info')
+    return redirect(url_for('profile'))
+
+@app.route('/history')
+@login_required
+def history():
+    user_id = session['user_id']
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        
+        # 1. Past Exam attempts / scores
+        exam_history = []
+        try:
+            exam_history = conn.execute('''
+                SELECT p.*, e.access_token, e.paper_id, pa.settings
+                FROM exam_participants p
+                JOIN exams e ON p.exam_id = e.id
+                LEFT JOIN papers pa ON e.paper_id = pa.id
+                WHERE p.student_id = ?
+                ORDER BY p.id DESC LIMIT 50
+            ''', (user_id,)).fetchall()
+        except Exception as e:
+            print(f"[History] Exam fetch: {e}")
+            
+        # 2. Mock Test History
+        mock_history = []
+        try:
+            mock_history = conn.execute('''
+                SELECT id, subject, difficulty, duration_mins, total_questions, score, status, started_at, completed_at 
+                FROM mock_tests 
+                WHERE student_id = ? 
+                ORDER BY id DESC LIMIT 50
+            ''', (user_id,)).fetchall()
+        except Exception as e:
+            print(f"[History] Mock test fetch: {e}")
+            
+        # 3. Practice Test attempts
+        practice_history = []
+        try:
+            practice_history = conn.execute('''
+                SELECT id, title, subject, difficulty, score, max_score, score_percent, time_spent, status, created_at, completed_at
+                FROM practice_tests 
+                WHERE student_id = ? 
+                ORDER BY created_at DESC LIMIT 50
+            ''', (user_id,)).fetchall()
+        except Exception as e:
+            print(f"[History] Practice fetch: {e}")
+
+        # 4. Generated Question Papers
+        papers_history = []
+        try:
+            papers_rows = conn.execute('''
+                SELECT id, filename, settings, created_at 
+                FROM papers 
+                WHERE user_id = ? 
+                ORDER BY rowid DESC LIMIT 50
+            ''', (user_id,)).fetchall()
+            for r in papers_rows:
+                s = json.loads(r['settings']) if r['settings'] else {}
+                papers_history.append({
+                    'id': r['id'],
+                    'filename': r['filename'],
+                    'subject': s.get('subject', 'Untitled'),
+                    'chapter': s.get('chapter', ''),
+                    'exam_name': s.get('exam_name', 'General Exam'),
+                    'total_marks': s.get('total_marks', 50),
+                    'difficulty': s.get('difficulty', 'Mixed'),
+                    'created_at': r['created_at'] if 'created_at' in r.keys() and r['created_at'] else 'Recently'
+                })
+        except Exception as e:
+            print(f"[History] Papers fetch: {e}")
+
+        # 5. Login History
+        logins = []
+        try:
+            logins = conn.execute('''
+                SELECT * FROM login_history 
+                WHERE user_id = ? 
+                ORDER BY login_time DESC LIMIT 20
+            ''', (user_id,)).fetchall()
+        except Exception as e:
+            print(f"[History] Login fetch: {e}")
+
+    return render_template(
+        'history.html',
+        exam_history=exam_history,
+        mock_history=mock_history,
+        practice_history=practice_history,
+        papers_history=papers_history,
+        login_history=logins
+    )
 
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
@@ -1107,17 +1330,20 @@ def upload_file():
         flash('No selected file', 'error')
         return redirect(url_for('index'))
     
-    if file and file.filename.endswith('.pdf'):
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if file and (file.filename.lower().endswith('.pdf') or file.mimetype == 'application/pdf'):
+        clean_name = secure_filename(file.filename)
+        if not clean_name or not clean_name.lower().endswith('.pdf'):
+            clean_name = f"paper_{uuid.uuid4().hex[:8]}.pdf"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], clean_name)
         file.save(filepath)
         
         try:
             # Test extraction immediately
             extract_text_from_pdf(filepath)
-            return redirect(url_for('settings', filename=filename))
+            return redirect(url_for('settings', filename=clean_name))
         except Exception as e:
-            os.remove(filepath)
+            if os.path.exists(filepath):
+                os.remove(filepath)
             flash(str(e), 'error')
             return redirect(url_for('index'))
     
@@ -1132,23 +1358,32 @@ def settings(filename):
 @app.route('/generate', methods=['POST'])
 @verified_required
 def generate():
-    filename = request.form.get('filename')
+    if request.is_json:
+        req_data = request.get_json() or {}
+    else:
+        req_data = request.form
+
+    filename = req_data.get('filename')
+    if not filename:
+        return jsonify({"error": "No filename provided"}), 400
+    
+    filename = secure_filename(filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     
     if not os.path.exists(filepath):
-        return jsonify({"error": "File not found"}), 400
+        return jsonify({"error": f"File '{filename}' not found on server"}), 404
         
     settings = {
-        'subject': request.form.get('subject'),
-        'chapter': request.form.get('chapter'),
-        'exam_name': request.form.get('exam_name'),
-        'class_sem': request.form.get('class_sem'),
-        'duration': request.form.get('duration'),
-        'total_marks': request.form.get('total_marks'),
-        'mcq_count': int(request.form.get('mcq_count', 0)),
-        'short_count': int(request.form.get('short_count', 0)),
-        'long_count': int(request.form.get('long_count', 0)),
-        'difficulty': request.form.get('difficulty')
+        'subject': req_data.get('subject') or 'General',
+        'chapter': req_data.get('chapter') or 'Chapter',
+        'exam_name': req_data.get('exam_name') or 'Examination',
+        'class_sem': req_data.get('class_sem') or '',
+        'duration': req_data.get('duration') or req_data.get('time_allowed') or '60 Mins',
+        'total_marks': req_data.get('total_marks') or '50',
+        'mcq_count': int(req_data.get('mcq_count', 0) or 0),
+        'short_count': int(req_data.get('short_count', 0) or 0),
+        'long_count': int(req_data.get('long_count', 0) or 0),
+        'difficulty': req_data.get('difficulty') or 'Medium'
     }
     
     try:
@@ -1156,12 +1391,20 @@ def generate():
         generated_data = generate_questions(pdf_text, settings)
         
         paper_id = str(uuid.uuid4())
+        user_id = session.get('user_id')
+        now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         with sqlite3.connect(DB_PATH) as conn:
-            conn.execute(
-                'INSERT INTO papers (id, filename, settings, generated_data) VALUES (?, ?, ?, ?)',
-                (paper_id, filename, json.dumps(settings), json.dumps(generated_data))
-            )
+            try:
+                conn.execute(
+                    'INSERT INTO papers (id, filename, settings, generated_data, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+                    (paper_id, filename, json.dumps(settings), json.dumps(generated_data), user_id, now_str)
+                )
+            except Exception:
+                conn.execute(
+                    'INSERT INTO papers (id, filename, settings, generated_data) VALUES (?, ?, ?, ?)',
+                    (paper_id, filename, json.dumps(settings), json.dumps(generated_data))
+                )
             
         return jsonify({"success": True, "paper_id": paper_id})
         

@@ -6,4 +6,7 @@ uploads/*
 !uploads/.gitkeep
 generated/*
 !generated/.gitkeep
+static/uploads/avatars/*
+!static/uploads/avatars/.gitkeep
+scratch/
 *.db

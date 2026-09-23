@@ -106,3 +106,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// ---- Global Navbar Kebab Menu Toggle ----
+function toggleKebabMenu(event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    const dropdown = document.getElementById('kebabDropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('show');
+    }
+}
+
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('kebabDropdown');
+    const btn = document.getElementById('kebabMenuBtn');
+    if (dropdown && dropdown.classList.contains('show')) {
+        if (!dropdown.contains(e.target) && (!btn || !btn.contains(e.target))) {
+            dropdown.classList.remove('show');
+        }
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const dropdown = document.getElementById('kebabDropdown');
+        if (dropdown) dropdown.classList.remove('show');
+    }
+});
