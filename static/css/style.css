@@ -943,6 +943,54 @@ a.dashboard-card * {
     display: inline-block;
 }
 
+.nav-user-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #000000;
+    color: #ffffff;
+    border: 2px solid #000000;
+    padding: 4px 14px 4px 4px;
+    border-radius: 9999px;
+    text-decoration: none;
+    font-size: 0.92rem;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.nav-user-pill:hover {
+    background: #18181b;
+    border-color: #10b981;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+
+.kebab-btn-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #000000;
+    color: #ffffff;
+    border: 2px solid #000000;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.kebab-btn-circle:hover {
+    background: #18181b;
+    border-color: #10b981;
+    color: #10b981;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+    transform: translateY(-1px);
+}
+
 .kebab-btn {
     display: inline-flex;
     align-items: center;

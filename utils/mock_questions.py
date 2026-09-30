@@ -20,6 +20,7 @@ MOCK_QUESTION_BANK = {
             "question": "Which data structure follows the Last-In, First-Out (LIFO) principle?",
             "options": ["Queue", "Stack", "Linked List", "Binary Tree"],
             "correct_answer": "Stack",
+            "topic": "Data Structures",
             "explanation": "A stack is a linear data structure that adheres to the LIFO principle where the last element inserted is the first one removed."
         },
         {
@@ -27,6 +28,7 @@ MOCK_QUESTION_BANK = {
             "question": "What is the worst-case time complexity of standard QuickSort?",
             "options": ["O(n log n)", "O(n)", "O(n²)", "O(log n)"],
             "correct_answer": "O(n²)",
+            "topic": "Algorithms & Complexity",
             "explanation": "QuickSort exhibits O(n²) worst-case time complexity when the pivot is consistently chosen as the smallest or largest element."
         },
         {
@@ -34,6 +36,7 @@ MOCK_QUESTION_BANK = {
             "question": "Which of the following is NOT an ACID property in relational databases?",
             "options": ["Atomicity", "Consistency", "Integrity", "Durability"],
             "correct_answer": "Integrity",
+            "topic": "Database Systems",
             "explanation": "The ACID properties stand for Atomicity, Consistency, Isolation, and Durability."
         },
         {
@@ -41,6 +44,7 @@ MOCK_QUESTION_BANK = {
             "question": "In Python, which built-in data type is mutable?",
             "options": ["Tuple", "String", "List", "Integer"],
             "correct_answer": "List",
+            "topic": "Programming Languages",
             "explanation": "Lists in Python are mutable, meaning their contents can be modified in-place, whereas tuples, strings, and integers are immutable."
         },
         {
@@ -48,6 +52,7 @@ MOCK_QUESTION_BANK = {
             "question": "What does HTTP status code 404 represent?",
             "options": ["Unauthorized", "Not Found", "Internal Server Error", "Bad Gateway"],
             "correct_answer": "Not Found",
+            "topic": "Networking & Protocols",
             "explanation": "HTTP 404 Not Found indicates that the requested resource could not be found on the server."
         },
         {
@@ -55,6 +60,7 @@ MOCK_QUESTION_BANK = {
             "question": "Which protocol is primarily used for securely transferring web pages over the internet?",
             "options": ["FTP", "SMTP", "HTTPS", "SNMP"],
             "correct_answer": "HTTPS",
+            "topic": "Web Security & Protocols",
             "explanation": "HTTPS (Hypertext Transfer Protocol Secure) encrypts HTTP traffic using Transport Layer Security (TLS)."
         },
         {
@@ -62,6 +68,7 @@ MOCK_QUESTION_BANK = {
             "question": "What is the default port number for DNS queries?",
             "options": ["21", "25", "53", "80"],
             "correct_answer": "53",
+            "topic": "Networking & DNS",
             "explanation": "DNS (Domain Name System) typically operates on UDP port 53."
         },
         {
@@ -69,6 +76,7 @@ MOCK_QUESTION_BANK = {
             "question": "Which memory type provides the fastest data access speed to the CPU?",
             "options": ["RAM", "SSD", "L1 Cache", "Hard Drive"],
             "correct_answer": "L1 Cache",
+            "topic": "Computer Architecture",
             "explanation": "L1 Cache is built directly inside the CPU processor core and provides the fastest access latency."
         }
     ],
@@ -78,6 +86,7 @@ MOCK_QUESTION_BANK = {
             "question": "What is the powerhouse of the cell?",
             "options": ["Nucleus", "Ribosome", "Mitochondria", "Endoplasmic Reticulum"],
             "correct_answer": "Mitochondria",
+            "topic": "Cell Biology",
             "explanation": "Mitochondria generate most of the chemical energy needed to power the cell's biochemical reactions via ATP."
         },
         {
@@ -85,6 +94,7 @@ MOCK_QUESTION_BANK = {
             "question": "What is the chemical symbol for Gold?",
             "options": ["Ag", "Au", "Fe", "Pb"],
             "correct_answer": "Au",
+            "topic": "Inorganic Chemistry",
             "explanation": "The chemical symbol Au comes from the Latin word for gold, 'Aurum'."
         },
         {
@@ -92,6 +102,7 @@ MOCK_QUESTION_BANK = {
             "question": "What is the acceleration due to gravity on Earth's surface approximately?",
             "options": ["7.8 m/s²", "9.8 m/s²", "11.2 m/s²", "15.0 m/s²"],
             "correct_answer": "9.8 m/s²",
+            "topic": "Classical Mechanics",
             "explanation": "Standard acceleration due to Earth's gravity is approximately 9.80665 m/s²."
         },
         {
@@ -99,6 +110,7 @@ MOCK_QUESTION_BANK = {
             "question": "Which gas is most abundant in Earth's atmosphere?",
             "options": ["Oxygen", "Carbon Dioxide", "Nitrogen", "Argon"],
             "correct_answer": "Nitrogen",
+            "topic": "Atmospheric Science",
             "explanation": "Nitrogen makes up approximately 78% of Earth's atmosphere by volume."
         },
         {
@@ -106,6 +118,7 @@ MOCK_QUESTION_BANK = {
             "question": "What is the pH level of pure water at 25°C?",
             "options": ["5", "7", "9", "14"],
             "correct_answer": "7",
+            "topic": "Acids, Bases & Chemistry",
             "explanation": "Pure neutral water has a pH of exactly 7.0 at 25°C."
         },
         {
@@ -113,6 +126,7 @@ MOCK_QUESTION_BANK = {
             "question": "Light year is a unit of measurement for:",
             "options": ["Time", "Distance", "Speed", "Intensity"],
             "correct_answer": "Distance",
+            "topic": "Astronomy & Physics",
             "explanation": "A light-year is the astronomical distance that light travels in a vacuum in one Julian year (approx. 9.46 trillion km)."
         }
     ],
@@ -122,6 +136,7 @@ MOCK_QUESTION_BANK = {
             "question": "What is the value of π (Pi) rounded to two decimal places?",
             "options": ["3.12", "3.14", "3.16", "3.18"],
             "correct_answer": "3.14",
+            "topic": "Geometry & Constants",
             "explanation": "Pi is the ratio of a circle's circumference to its diameter, approximately 3.14159..."
         },
         {
@@ -129,6 +144,7 @@ MOCK_QUESTION_BANK = {
             "question": "What is the derivative of sin(x) with respect to x?",
             "options": ["-cos(x)", "cos(x)", "tan(x)", "-sin(x)"],
             "correct_answer": "cos(x)",
+            "topic": "Calculus & Derivatives",
             "explanation": "The derivative of sin(x) is cos(x)."
         },
         {
@@ -136,6 +152,7 @@ MOCK_QUESTION_BANK = {
             "question": "If 2x + 5 = 15, what is the value of x?",
             "options": ["3", "5", "7", "10"],
             "correct_answer": "5",
+            "topic": "Linear Algebra & Equations",
             "explanation": "Subtracting 5 from both sides gives 2x = 10, so x = 5."
         },
         {
@@ -143,6 +160,7 @@ MOCK_QUESTION_BANK = {
             "question": "What is the sum of angles in any Euclidean triangle?",
             "options": ["90°", "180°", "270°", "360°"],
             "correct_answer": "180°",
+            "topic": "Euclidean Geometry",
             "explanation": "The sum of interior angles of any triangle in planar geometry is always 180 degrees."
         },
         {
@@ -150,6 +168,7 @@ MOCK_QUESTION_BANK = {
             "question": "What is the square root of 256?",
             "options": ["14", "15", "16", "18"],
             "correct_answer": "16",
+            "topic": "Arithmetic & Radicals",
             "explanation": "16 multiplied by 16 equals 256."
         }
     ],
@@ -159,6 +178,7 @@ MOCK_QUESTION_BANK = {
             "question": "Which of the following is an example of an oxymoron?",
             "options": ["As brave as a lion", "Deafening silence", "Time flies", "The wind whispered"],
             "correct_answer": "Deafening silence",
+            "topic": "Figures of Speech",
             "explanation": "An oxymoron combines two contradictory terms, like 'deafening' and 'silence'."
         },
         {
@@ -166,6 +186,7 @@ MOCK_QUESTION_BANK = {
             "question": "Identify the conjunction in this sentence: 'She wanted to go, but it was raining.'",
             "options": ["She", "wanted", "but", "raining"],
             "correct_answer": "but",
+            "topic": "Grammar & Conjunctions",
             "explanation": "'But' is a coordinating conjunction connecting two independent clauses."
         },
         {
@@ -173,6 +194,7 @@ MOCK_QUESTION_BANK = {
             "question": "What is the antonym of 'Benevolent'?",
             "options": ["Generous", "Malevolent", "Affectionate", "Sympathetic"],
             "correct_answer": "Malevolent",
+            "topic": "Vocabulary & Antonyms",
             "explanation": "Benevolent means kind and well-meaning; malevolent means wishing to do evil to others."
         },
         {
@@ -180,6 +202,7 @@ MOCK_QUESTION_BANK = {
             "question": "Choose the correctly spelled word:",
             "options": ["Accomodate", "Acommodate", "Accommodate", "Acomodate"],
             "correct_answer": "Accommodate",
+            "topic": "Orthography & Spelling",
             "explanation": "The correct spelling is 'Accommodate' with double 'c' and double 'm'."
         }
     ]
@@ -215,6 +238,7 @@ def get_mock_questions(subject: str = "Computer Science", count: int = 5, diffic
                 "question": q["question"],
                 "options": opts,
                 "correct_answer": q["correct_answer"],
+                "topic": q.get("topic", subject),
                 "explanation": q.get("explanation", ""),
                 "marks": 1
             })
@@ -228,7 +252,7 @@ def get_mock_questions(subject: str = "Computer Science", count: int = 5, diffic
             model = genai.GenerativeModel("gemini-1.5-flash")
             prompt = (
                 f"Generate {count} multiple choice questions (MCQs) for subject '{subject}' at '{difficulty}' level.\n"
-                f"Return ONLY valid JSON array of objects with keys: id (number), question (string), options (array of 4 strings), correct_answer (string), explanation (string).\n"
+                f"Return ONLY valid JSON array of objects with keys: id (number), question (string), options (array of 4 strings), correct_answer (string), topic (string), explanation (string).\n"
                 f"No markdown formatting."
             )
             response = model.generate_content(prompt)
@@ -241,6 +265,8 @@ def get_mock_questions(subject: str = "Computer Science", count: int = 5, diffic
             for idx, q in enumerate(questions, 1):
                 q["id"] = idx
                 q["marks"] = 1
+                if "topic" not in q:
+                    q["topic"] = subject
             return questions
         except Exception as e:
             print(f"[Mock Generator] Gemini fallback: {e}")
@@ -259,6 +285,7 @@ def get_mock_questions(subject: str = "Computer Science", count: int = 5, diffic
             "question": q["question"],
             "options": opts,
             "correct_answer": q["correct_answer"],
+            "topic": q.get("topic", subject),
             "explanation": q.get("explanation", ""),
             "marks": 1
         })

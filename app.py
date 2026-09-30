@@ -26,7 +26,8 @@ from utils.exam_engine import (
     extract_chapters_and_topics,
     generate_exam_questions_from_book,
     grade_exam_attempt,
-    generate_learning_analytics
+    generate_learning_analytics,
+    evaluate_practice_answers
 )
 import io
 import csv
@@ -2718,45 +2719,22 @@ def submit_practice_test(practice_id):
             return redirect(url_for('practice_setup'))
 
         questions = json.loads(practice['questions_data'] or '[]')
-        
-        correct_count = 0
-        total_questions = len(questions)
-        review_items = []
-
-        for idx, q in enumerate(questions):
-            u_ans = answers.get(str(idx)) or answers.get(idx)
-            corr = q.get('correct_answer')
-            is_corr = False
-            if u_ans and corr:
-                is_corr = (str(u_ans).strip().upper() == str(corr).strip().upper())
-            if is_corr:
-                correct_count += 1
-
-            review_items.append({
-                'question': q,
-                'user_answer': u_ans,
-                'correct_answer': corr,
-                'is_correct': is_corr
-            })
-
-        score_percent = round((correct_count / total_questions * 100)) if total_questions else 0
-
-        practice_result = {
-            'score': correct_count,
-            'max_score': total_questions,
-            'percentage': score_percent,
-            'correct_count': correct_count,
-            'incorrect_count': total_questions - correct_count,
-            'review_items': review_items
-        }
-        analytics = generate_learning_analytics(practice_result, practice['subject'])
+        practice_result, analytics = evaluate_practice_answers(questions, answers, practice['subject'])
 
         conn.execute('''
             UPDATE practice_tests
             SET score = ?, max_score = ?, score_percent = ?, user_answers = ?,
                 time_spent = ?, analytics_data = ?, status = 'completed', completed_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        ''', (correct_count, total_questions, score_percent, json.dumps(answers), time_spent, json.dumps(analytics), practice_id))
+        ''', (
+            practice_result['score'],
+            practice_result['max_score'],
+            practice_result['percentage'],
+            json.dumps(answers),
+            time_spent,
+            json.dumps(analytics),
+            practice_id
+        ))
 
     return redirect(url_for('practice_result_page', practice_id=practice_id))
 
@@ -2772,27 +2750,36 @@ def practice_result_page(practice_id):
 
     questions = json.loads(practice['questions_data'] or '[]')
     answers = json.loads(practice['user_answers'] or '{}')
-    analytics = json.loads(practice['analytics_data'] or '{}')
 
-    review_items = []
-    for idx, q in enumerate(questions):
-        u_ans = answers.get(str(idx)) or answers.get(idx)
-        corr = q.get('correct_answer')
-        is_corr = False
-        if u_ans and corr:
-            is_corr = (str(u_ans).strip().upper() == str(corr).strip().upper())
-        review_items.append({
-            'question': q,
-            'user_answer': u_ans,
-            'correct_answer': corr,
-            'is_correct': is_corr
-        })
+    # Evaluate properly using robust matching and AI analytics generator
+    practice_result, analytics = evaluate_practice_answers(questions, answers, practice['subject'])
+
+    # Auto-heal/update existing DB record if score was 0 due to legacy evaluation or analytics was missing fields
+    legacy_analytics = json.loads(practice['analytics_data'] or '{}')
+    needs_update = (
+        practice['score'] != practice_result['score'] or
+        practice['score_percent'] != practice_result['percentage'] or
+        not legacy_analytics.get('topic_breakdown') or
+        not legacy_analytics.get('correct_count')
+    )
+
+    if needs_update:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute('''
+                UPDATE practice_tests
+                SET score = ?, max_score = ?, score_percent = ?, analytics_data = ?
+                WHERE id = ?
+            ''', (practice_result['score'], practice_result['max_score'], practice_result['percentage'], json.dumps(analytics), practice_id))
+        practice = dict(practice)
+        practice['score'] = practice_result['score']
+        practice['max_score'] = practice_result['max_score']
+        practice['score_percent'] = practice_result['percentage']
 
     return render_template(
         'practice_result.html',
         practice=practice,
         analytics=analytics,
-        review_items=review_items
+        review_items=practice_result['review_items']
     )
 
 if __name__ == '__main__':

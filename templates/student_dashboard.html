@@ -78,61 +78,64 @@
         <a href="{{ url_for('student_practice_page') }}" class="nav-link">🎯 AI Practice Test</a>
         <a href="{{ url_for('resume_builder') }}" class="nav-link">Resume Builder</a>
         <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
-        <a href="{{ url_for('history') }}" class="nav-link">History</a>
-        <div class="nav-kebab-menu">
-            <button type="button" class="kebab-btn" id="kebabMenuBtn" aria-label="Open menu" onclick="toggleKebabMenu(event)">
+        <div class="nav-user-container">
+            <a href="{{ url_for('profile') }}" class="nav-user-pill" title="My Profile">
                 {% if session.get('profile_photo') %}
                     <img src="{{ session['profile_photo'] }}" alt="Profile" class="nav-avatar-img">
                 {% else %}
                     <span class="nav-avatar-initial">{{ session.get('username', 'S')[0].upper() }}</span>
                 {% endif %}
-                <span style="font-weight: 700;">{{ session.get('username') }}</span>
-                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="5" r="1.5"></circle>
-                    <circle cx="12" cy="12" r="1.5"></circle>
-                    <circle cx="12" cy="19" r="1.5"></circle>
-                </svg>
-            </button>
-            <div class="kebab-dropdown" id="kebabDropdown">
-                <div class="kebab-user-info">
-                    <div class="kebab-user-avatar">
-                        {% if session.get('profile_photo') %}
-                            <img src="{{ session['profile_photo'] }}" alt="Avatar">
-                        {% else %}
-                            <span>{{ session.get('username', 'S')[0].upper() }}</span>
-                        {% endif %}
+                <span>{{ session.get('username') }}</span>
+            </a>
+            <div class="nav-kebab-menu">
+                <button type="button" class="kebab-btn-circle" id="kebabMenuBtn" aria-label="More options" onclick="toggleKebabMenu(event)">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="5" r="1.5"></circle>
+                        <circle cx="12" cy="12" r="1.5"></circle>
+                        <circle cx="12" cy="19" r="1.5"></circle>
+                    </svg>
+                </button>
+                <div class="kebab-dropdown" id="kebabDropdown">
+                    <div class="kebab-user-info">
+                        <div class="kebab-user-avatar">
+                            {% if session.get('profile_photo') %}
+                                <img src="{{ session['profile_photo'] }}" alt="Avatar">
+                            {% else %}
+                                <span>{{ session.get('username', 'S')[0].upper() }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="kebab-user-meta">
+                            <div class="kebab-user-name">{{ session.get('full_name') or session.get('username') }}</div>
+                            <div class="kebab-user-role">Student</div>
+                        </div>
                     </div>
-                    <div class="kebab-user-meta">
-                        <div class="kebab-user-name">{{ session.get('full_name') or session.get('username') }}</div>
-                        <div class="kebab-user-role">Student</div>
-                    </div>
+                    <div class="kebab-divider"></div>
+                    <a href="{{ url_for('history') }}" class="kebab-item">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        <span>Official Exam &amp; Practice History</span>
+                    </a>
+                    <a href="{{ url_for('profile') }}" class="kebab-item">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        <span>Edit Profile</span>
+                    </a>
+                    <a href="{{ url_for('index') }}" class="kebab-item">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                        <span>Question Paper Generator</span>
+                    </a>
+                    <a href="{{ url_for('student_practice_page') }}" class="kebab-item">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                        <span>AI Practice Tests</span>
+                    </a>
+                    <a href="{{ url_for('resume_builder') }}" class="kebab-item">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                        <span>AI Resume Builder</span>
+                    </a>
+                    <div class="kebab-divider"></div>
+                    <a href="{{ url_for('logout') }}" class="kebab-item kebab-item-danger">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        <span>Log Out</span>
+                    </a>
                 </div>
-                <div class="kebab-divider"></div>
-                <a href="{{ url_for('history') }}" class="kebab-item">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    <span>History &amp; Activity</span>
-                </a>
-                <a href="{{ url_for('profile') }}" class="kebab-item">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                    <span>Edit Profile</span>
-                </a>
-                <a href="{{ url_for('index') }}" class="kebab-item">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-                    <span>Question Paper Generator</span>
-                </a>
-                <a href="{{ url_for('student_practice_page') }}" class="kebab-item">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                    <span>AI Practice Tests</span>
-                </a>
-                <a href="{{ url_for('resume_builder') }}" class="kebab-item">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-                    <span>AI Resume Builder</span>
-                </a>
-                <div class="kebab-divider"></div>
-                <a href="{{ url_for('logout') }}" class="kebab-item kebab-item-danger">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                    <span>Log Out</span>
-                </a>
             </div>
         </div>
     </div>
@@ -262,55 +265,6 @@
                 </div>
             </a>
         </div>
-    </div>
-
-    <!-- 4. MY EXAM ATTEMPTS HISTORY -->
-    <div class="table-card">
-        <h3 style="margin-bottom: 15px; color: #000000;">My Official Examination History</h3>
-        {% if my_attempts %}
-        <div style="overflow-x: auto;">
-            <table class="s-table">
-                <thead>
-                    <tr>
-                        <th>Exam Title</th>
-                        <th>Subject</th>
-                        <th>Score</th>
-                        <th>Percentage</th>
-                        <th>Result</th>
-                        <th>Completed Date</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for a in my_attempts %}
-                    <tr>
-                        <td><strong>{{ a.title }}</strong></td>
-                        <td style="color: #52525b;">{{ a.subject }}</td>
-                        <td><strong>{{ a.score }} / {{ a.total_marks }}</strong></td>
-                        <td><strong>{{ a.percentage }}%</strong></td>
-                        <td>
-                            {% if a.passed %}
-                                <span style="font-weight: 700; color: #15803d; background: #dcfce7; padding: 4px 12px; border-radius: 20px; border: 1px solid #86efac; font-size: 0.8rem;">PASSED</span>
-                            {% else %}
-                                <span style="font-weight: 700; color: #b45309; background: #fef3c7; padding: 4px 12px; border-radius: 20px; border: 1px solid #fde68a; font-size: 0.8rem;">NEEDS REVIEW</span>
-                            {% endif %}
-                        </td>
-                        <td style="color: #52525b;">{{ a.completed_at[:16] if a.completed_at else 'In Progress' }}</td>
-                        <td>
-                            <a href="{{ url_for('student_exam_result', attempt_id=a.id) }}" style="color: #10b981; text-decoration: none; font-weight: 700;">
-                                View Scorecard &rarr;
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div style="text-align: center; padding: 30px; color: var(--text-muted);">
-            <p>You have not taken any official examinations yet. Enter a Test ID above to begin!</p>
-        </div>
-        {% endif %}
     </div>
 </div>
 

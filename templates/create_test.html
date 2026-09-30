@@ -52,22 +52,24 @@
         <a href="{{ url_for('teacher_dashboard') }}" class="nav-link">Teacher Dashboard</a>
         <a href="{{ url_for('teacher_dashboard') }}#previous-results" class="nav-link">Previous Results</a>
         <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
-        <a href="{{ url_for('history') }}" class="nav-link">History</a>
-        <div class="nav-kebab-menu">
-            <button type="button" class="kebab-btn" id="kebabMenuBtn" aria-label="Open menu" onclick="toggleKebabMenu(event)">
+        <div class="nav-user-container">
+            <a href="{{ url_for('profile') }}" class="nav-user-pill" title="My Profile">
                 {% if session.get('profile_photo') %}
                     <img src="{{ session['profile_photo'] }}" alt="Profile" class="nav-avatar-img">
                 {% else %}
                     <span class="nav-avatar-initial">{{ session.get('username', 'U')[0].upper() }}</span>
                 {% endif %}
-                <span style="font-weight: 700;">{{ session.get('username') }}</span>
-                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="5" r="1.5"></circle>
-                    <circle cx="12" cy="12" r="1.5"></circle>
-                    <circle cx="12" cy="19" r="1.5"></circle>
-                </svg>
-            </button>
-            <div class="kebab-dropdown" id="kebabDropdown">
+                <span>{{ session.get('username') }}</span>
+            </a>
+            <div class="nav-kebab-menu">
+                <button type="button" class="kebab-btn-circle" id="kebabMenuBtn" aria-label="More options" onclick="toggleKebabMenu(event)">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="5" r="1.5"></circle>
+                        <circle cx="12" cy="12" r="1.5"></circle>
+                        <circle cx="12" cy="19" r="1.5"></circle>
+                    </svg>
+                </button>
+                <div class="kebab-dropdown" id="kebabDropdown">
                 <div class="kebab-user-info">
                     <div class="kebab-user-avatar">
                         {% if session.get('profile_photo') %}

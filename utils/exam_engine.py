@@ -286,14 +286,13 @@ def grade_exam_attempt(questions: list[dict], user_answers: dict, negative_marki
                 "topic": topic
             })
         else:
-            # Check correctness
-            u_clean = user_ans.strip().lower()
-            is_correct = (u_clean == correct_ans)
+            # Check correctness using robust matching
+            is_correct = is_answer_correct(user_ans, q.get("correct_answer"), q.get("options", []))
 
             # For numerical, allow tolerance
             if not is_correct and q.get("type") == "numerical":
                 try:
-                    if abs(float(u_clean) - float(correct_ans)) < 0.01:
+                    if abs(float(str(user_ans).strip()) - float(str(correct_ans).strip())) < 0.01:
                         is_correct = True
                 except Exception:
                     pass
@@ -366,6 +365,225 @@ def grade_exam_attempt(questions: list[dict], user_answers: dict, negative_marki
     }
 
 
+def is_answer_correct(user_ans, correct_ans, options=None) -> bool:
+    """
+    Robust comparison checking if user answer matches correct answer,
+    handling letter choices ('A', 'B', 'C', 'D'), option text ('Stack'),
+    and formatted options ('B. Stack').
+    """
+    if user_ans is None or correct_ans is None:
+        return False
+        
+    u_str = str(user_ans).strip()
+    c_str = str(correct_ans).strip()
+    if not u_str or not c_str:
+        return False
+
+    # Exact case-insensitive match
+    if u_str.lower() == c_str.lower():
+        return True
+
+    options = options or []
+
+    def resolve_choice(val):
+        val_str = str(val).strip()
+        letter = None
+        text = val_str
+
+        # If single letter 'A'-'Z'
+        if len(val_str) == 1 and val_str.upper() in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+            letter = val_str.upper()
+            idx = ord(letter) - ord('A')
+            if 0 <= idx < len(options):
+                text = str(options[idx]).strip()
+        # If prefix like "A. text" or "A) text" or "(A) text"
+        elif len(val_str) > 2 and val_str[0].upper() in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" and val_str[1] in [".", ")", ":", " "]:
+            letter = val_str[0].upper()
+            text = val_str[2:].strip()
+        else:
+            # Check if val_str matches any of options
+            for o_idx, opt in enumerate(options):
+                opt_s = str(opt).strip()
+                if opt_s.lower() == val_str.lower():
+                    letter = chr(ord('A') + o_idx)
+                    text = opt_s
+                    break
+        return letter, text
+
+    u_letter, u_text = resolve_choice(u_str)
+    c_letter, c_text = resolve_choice(c_str)
+
+    # 1. Compare by letter
+    if u_letter and c_letter and u_letter == c_letter:
+        return True
+
+    # 2. Compare by text
+    if u_text and c_text and u_text.lower() == c_text.lower():
+        return True
+
+    # 3. Numeric tolerance check
+    try:
+        if abs(float(u_str) - float(c_str)) < 0.001:
+            return True
+    except Exception:
+        pass
+
+    return False
+
+
+def format_display_answer(val, options=None) -> str:
+    """Formats answer to display e.g. 'B. Stack' instead of just 'B' or plain text."""
+    if val is None or str(val).strip() == "":
+        return "(Skipped / Unanswered)"
+    val_str = str(val).strip()
+    options = options or []
+
+    # If single letter
+    if len(val_str) == 1 and val_str.upper() in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+        idx = ord(val_str.upper()) - ord('A')
+        if 0 <= idx < len(options):
+            return f"{val_str.upper()}. {options[idx]}"
+        return val_str.upper()
+
+    # If text matches one of the options, prepend the letter
+    for o_idx, opt in enumerate(options):
+        opt_s = str(opt).strip()
+        if opt_s.lower() == val_str.lower():
+            letter = chr(ord('A') + o_idx)
+            return f"{letter}. {opt_s}"
+
+    return val_str
+
+
+def infer_question_topic(question_obj: dict, subject: str = "General") -> str:
+    """Infers or returns a clean, representative topic name for a question."""
+    if question_obj.get("topic") and str(question_obj.get("topic")).strip():
+        return str(question_obj["topic"]).strip()
+
+    q_text = str(question_obj.get("question", "")).lower()
+    if any(k in q_text for k in ["stack", "queue", "tree", "linked list", "array", "graph", "hash"]):
+        return "Data Structures"
+    if any(k in q_text for k in ["quicksort", "binary search", "complexity", "o(n", "algorithm", "sorting"]):
+        return "Algorithms & Complexity"
+    if any(k in q_text for k in ["database", "acid", "sql", "relational", "table", "transaction", "key"]):
+        return "Database Systems"
+    if any(k in q_text for k in ["http", "https", "network", "port", "protocol", "dns", "ip", "udp", "tcp"]):
+        return "Networking & Protocols"
+    if any(k in q_text for k in ["cache", "cpu", "memory", "ram", "processor", "hardware", "register"]):
+        return "Computer Architecture"
+    if any(k in q_text for k in ["python", "mutable", "immutable", "string", "variable", "datatype"]):
+        return "Programming Languages"
+    if any(k in q_text for k in ["cell", "mitochondria", "dna", "biology", "nucleus", "organelle"]):
+        return "Cell Biology"
+    if any(k in q_text for k in ["acid", "ph", "chemical", "gold", "element", "nitrogen", "periodic"]):
+        return "Inorganic Chemistry"
+    if any(k in q_text for k in ["gravity", "light year", "distance", "speed", "force", "velocity", "acceleration"]):
+        return "Classical Mechanics"
+    if any(k in q_text for k in ["derivative", "pi", "equation", "angle", "triangle", "square root", "integral"]):
+        return "Mathematics & Calculus"
+    if any(k in q_text for k in ["oxymoron", "conjunction", "antonym", "spelling", "word", "sentence", "grammar"]):
+        return "Language & Grammar"
+
+    return f"{subject} Core Concepts"
+
+
+def evaluate_practice_answers(questions: list, user_answers: dict, subject: str = "General") -> tuple[dict, dict]:
+    """
+    Evaluates student practice responses, returns scorecard result and rich AI learning analytics.
+    """
+    correct_count = 0
+    total_questions = len(questions)
+    review_items = []
+    topic_stats = {}
+
+    for idx, q in enumerate(questions):
+        q_id = str(q.get("id")) if q.get("id") is not None else str(idx)
+        options = q.get("options", [])
+        corr = q.get("correct_answer")
+        topic = infer_question_topic(q, subject)
+
+        if topic not in topic_stats:
+            topic_stats[topic] = {"total": 0, "correct": 0}
+        topic_stats[topic]["total"] += 1
+
+        u_ans = None
+        if str(idx) in user_answers:
+            u_ans = user_answers[str(idx)]
+        elif idx in user_answers:
+            u_ans = user_answers[idx]
+        elif q_id in user_answers:
+            u_ans = user_answers[q_id]
+
+        is_corr = is_answer_correct(u_ans, corr, options)
+        if is_corr:
+            correct_count += 1
+            topic_stats[topic]["correct"] += 1
+
+        u_display = format_display_answer(u_ans, options)
+        c_display = format_display_answer(corr, options)
+
+        review_items.append({
+            "question": q,
+            "user_answer": u_ans,
+            "user_answer_display": u_display,
+            "correct_answer": corr,
+            "correct_answer_display": c_display,
+            "is_correct": is_corr,
+            "topic": topic
+        })
+
+    score_percent = round((correct_count / total_questions * 100)) if total_questions else 0
+    incorrect_count = total_questions - correct_count
+
+    # Build topic breakdown table & progress data
+    topic_breakdown = []
+    weak_topics = []
+    strong_topics = []
+
+    for t_name, s_data in topic_stats.items():
+        tot = s_data["total"]
+        cor = s_data["correct"]
+        pct = round((cor / tot) * 100) if tot > 0 else 0
+        if pct >= 75:
+            status = "Strong"
+            strong_topics.append(t_name)
+        elif pct >= 50:
+            status = "Moderate"
+        else:
+            status = "Weak"
+            weak_topics.append(t_name)
+
+        topic_breakdown.append({
+            "name": t_name,
+            "total": tot,
+            "correct": cor,
+            "percentage": pct,
+            "status": status
+        })
+
+    # Fallback to realistic concepts if none detected
+    if not weak_topics:
+        weak_topics = [f"Advanced {subject} Applications", "Edge Case Scenarios"]
+    if not strong_topics:
+        strong_topics = [f"Foundational {subject} Concepts"]
+
+    practice_result = {
+        "score": correct_count,
+        "max_score": total_questions,
+        "percentage": score_percent,
+        "correct_count": correct_count,
+        "incorrect_count": incorrect_count,
+        "total_questions": total_questions,
+        "review_items": review_items,
+        "topic_breakdown": topic_breakdown,
+        "weak_topics": weak_topics,
+        "strong_topics": strong_topics
+    }
+
+    analytics = generate_learning_analytics(practice_result, subject)
+    return practice_result, analytics
+
+
 def generate_learning_analytics(practice_result: dict, subject: str) -> dict:
     """
     Generates AI personalized learning recommendations based on student practice score.
@@ -373,6 +591,10 @@ def generate_learning_analytics(practice_result: dict, subject: str) -> dict:
     weak_topics = practice_result.get("weak_topics", [])
     strong_topics = practice_result.get("strong_topics", [])
     pct = practice_result.get("percentage", 0.0)
+    correct_count = practice_result.get("correct_count", 0)
+    incorrect_count = practice_result.get("incorrect_count", 0)
+    total_questions = practice_result.get("max_score") or practice_result.get("total_questions", 0)
+    topic_breakdown = practice_result.get("topic_breakdown", [])
 
     if not weak_topics:
         weak_topics = [f"Advanced {subject} Applications", "Edge Case Scenarios"]
@@ -381,14 +603,26 @@ def generate_learning_analytics(practice_result: dict, subject: str) -> dict:
 
     # Recommended study time calculation
     if pct >= 80:
-        recommended_study_hours = "1 - 2 hours weekly (maintain mastery)"
+        recommended_study_hours = "1 - 2 hrs / week"
         pace = "Accelerated / Advanced"
+        ai_feedback = (
+            f"Mastery Demonstrated! You scored {correct_count} out of {total_questions} ({pct}% accuracy) in {subject}. "
+            f"You exhibit strong conceptual retention in {', '.join(strong_topics[:2])}. Maintain peak performance by solving complex problems."
+        )
     elif pct >= 50:
-        recommended_study_hours = "3 - 5 hours weekly (reinforce weak concepts)"
+        recommended_study_hours = "3 - 5 hrs / week"
         pace = "Targeted Review"
+        ai_feedback = (
+            f"Good Baseline Comprehension! You achieved {correct_count} out of {total_questions} ({pct}% accuracy) in {subject}. "
+            f"While your understanding of {', '.join(strong_topics[:2])} is promising, revision is recommended for {', '.join(weak_topics[:2])}."
+        )
     else:
-        recommended_study_hours = "6 - 8 hours weekly (deep dive into fundamentals)"
+        recommended_study_hours = "6 - 8 hrs / week"
         pace = "Foundational Focus"
+        ai_feedback = (
+            f"Foundational Revision Required. You achieved {correct_count} out of {total_questions} ({pct}% accuracy) in {subject}. "
+            f"Key conceptual hurdles were detected in {', '.join(weak_topics[:3])}. Prioritize review of the step-by-step solutions below and generate a targeted revision drill."
+        )
 
     recommendations = [
         f"Prioritize targeted review of: {', '.join(weak_topics)}.",
@@ -398,9 +632,15 @@ def generate_learning_analytics(practice_result: dict, subject: str) -> dict:
     ]
 
     return {
+        "correct_count": correct_count,
+        "incorrect_count": incorrect_count,
+        "total_questions": total_questions,
+        "percentage": pct,
         "weak_topics": weak_topics,
         "strong_topics": strong_topics,
+        "topic_breakdown": topic_breakdown,
         "recommended_study_hours": recommended_study_hours,
         "learning_pace": pace,
+        "ai_feedback": ai_feedback,
         "actionable_tips": recommendations
     }
