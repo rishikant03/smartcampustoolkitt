@@ -55,8 +55,8 @@ class VercelPathFix:
     def __call__(self, environ, start_response):
         path = environ.get('PATH_INFO', '')
 
-        # 1. Strip all possible serverless function prefixes (e.g. from destination: /api/index.py/$1)
-        for prefix in ['/api/index.py', '/api/index', '/api']:
+        # 1. Strip serverless function entrypoint prefixes
+        for prefix in ['/api/index.py', '/api/index']:
             if path == prefix or path == prefix + '/':
                 path = '/'
                 break
@@ -64,21 +64,47 @@ class VercelPathFix:
                 path = path[len(prefix):]
                 break
 
-        # 2. If after stripping, path is empty or '/', check if HTTP_X_MATCHED_PATH has the subpath
+        # 2. If after stripping, path is empty or '/', check Vercel routing headers
         if path == '/' or not path:
-            matched = environ.get('HTTP_X_MATCHED_PATH', '')
+            matched = (
+                environ.get('HTTP_X_MATCHED_PATH') or
+                environ.get('HTTP_X_VERCEL_MATCHED_PATH') or
+                environ.get('REQUEST_URI') or
+                environ.get('RAW_URI') or
+                ''
+            )
             if matched:
                 clean = matched.split('?')[0]
-                if clean and not clean.startswith('/api'):
+                for prefix in ['/api/index.py', '/api/index']:
+                    if clean == prefix or clean == prefix + '/':
+                        clean = '/'
+                        break
+                    elif clean.startswith(prefix + '/'):
+                        clean = clean[len(prefix):]
+                        break
+                if clean:
                     path = clean
 
-        if not path:
-            path = '/'
+        if not path or not path.startswith('/'):
+            path = '/' + path.lstrip('/')
 
         environ['PATH_INFO'] = path
         return self.wsgi_app(environ, start_response)
 
 app.wsgi_app = VercelPathFix(app.wsgi_app)
+
+def parse_dt(val):
+    if not val:
+        return None
+    if isinstance(val, datetime.datetime):
+        return val
+    try:
+        return datetime.datetime.strptime(str(val)[:19], "%Y-%m-%d %H:%M:%S")
+    except Exception:
+        try:
+            return datetime.datetime.fromisoformat(str(val))
+        except Exception:
+            return None
 
 # Safe folder creation for serverless (read-only filesystem)
 try:
@@ -662,9 +688,10 @@ def verify_email_page():
         remaining_seconds = 300
         if user['otp_expiry']:
             try:
-                exp = datetime.datetime.strptime(user['otp_expiry'], '%Y-%m-%d %H:%M:%S')
-                rem = int((exp - datetime.datetime.now()).total_seconds())
-                remaining_seconds = max(0, rem)
+                exp = parse_dt(user['otp_expiry'])
+                if exp:
+                    rem = int((exp - datetime.datetime.now()).total_seconds())
+                    remaining_seconds = max(0, rem)
             except Exception:
                 remaining_seconds = 300
                 
@@ -672,10 +699,11 @@ def verify_email_page():
         resend_cooldown = 0
         if user['otp_last_sent']:
             try:
-                lst = datetime.datetime.strptime(user['otp_last_sent'], '%Y-%m-%d %H:%M:%S')
-                elapsed = int((datetime.datetime.now() - lst).total_seconds())
-                if elapsed < 45:
-                    resend_cooldown = 45 - elapsed
+                lst = parse_dt(user['otp_last_sent'])
+                if lst:
+                    elapsed = int((datetime.datetime.now() - lst).total_seconds())
+                    if elapsed < 45:
+                        resend_cooldown = 45 - elapsed
             except Exception:
                 resend_cooldown = 0
                 
@@ -710,12 +738,13 @@ def resend_otp():
         # Cooldown check to prevent spamming
         if user['otp_last_sent']:
             try:
-                lst = datetime.datetime.strptime(user['otp_last_sent'], '%Y-%m-%d %H:%M:%S')
-                elapsed = int((datetime.datetime.now() - lst).total_seconds())
-                if elapsed < 45:
-                    wait_time = 45 - elapsed
-                    flash(f'Please wait {wait_time} seconds before requesting a new OTP.', 'error')
-                    return redirect(url_for('verify_email_page', email=email))
+                lst = parse_dt(user['otp_last_sent'])
+                if lst:
+                    elapsed = int((datetime.datetime.now() - lst).total_seconds())
+                    if elapsed < 45:
+                        wait_time = 45 - elapsed
+                        flash(f'Please wait {wait_time} seconds before requesting a new OTP.', 'error')
+                        return redirect(url_for('verify_email_page', email=email))
             except Exception:
                 pass
                 
@@ -752,7 +781,7 @@ def resend_otp():
 def verify_email_token(token):
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
-        token_record = conn.execute('SELECT * FROM verification_tokens WHERE token = ? AND type = "email"', (token,)).fetchone()
+        token_record = conn.execute("SELECT * FROM verification_tokens WHERE token = ? AND type = 'email'", (token,)).fetchone()
         
         if not token_record:
             flash('Invalid or expired token.', 'error')
@@ -848,7 +877,7 @@ def google_verify_code():
             user_id = user['id']
             username = user['username']
             role = user['role']
-            conn.execute('UPDATE users SET is_verified = 1, auth_provider = "google" WHERE id = ?', (user_id,))
+            conn.execute("UPDATE users SET is_verified = 1, auth_provider = 'google' WHERE id = ?", (user_id,))
             
     # Clear pending session data
     session.pop('pending_google_email', None)
@@ -1045,7 +1074,7 @@ def legacy_dashboard():
                     pass
         else:
             recent_mock_tests = conn.execute(
-                'SELECT id, subject, difficulty, total_questions, score, completed_at FROM mock_tests WHERE student_id = ? AND status = "completed" ORDER BY completed_at DESC LIMIT 5',
+                "SELECT id, subject, difficulty, total_questions, score, completed_at FROM mock_tests WHERE student_id = ? AND status = 'completed' ORDER BY completed_at DESC LIMIT 5",
                 (session['user_id'],)
             ).fetchall()
             
@@ -1104,12 +1133,18 @@ def update_profile():
         if file and file.filename != '':
             ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
             if ext in {'png', 'jpg', 'jpeg', 'webp', 'gif'}:
-                avatar_dir = os.path.join(app.root_path, 'static', 'uploads', 'avatars')
-                os.makedirs(avatar_dir, exist_ok=True)
-                fname = f"avatar_{session['user_id']}_{uuid.uuid4().hex[:6]}.{ext}"
-                filepath = os.path.join(avatar_dir, fname)
-                file.save(filepath)
-                avatar_url = f"/static/uploads/avatars/{fname}"
+                try:
+                    avatar_dir = os.path.join(app.root_path, 'static', 'uploads', 'avatars')
+                    os.makedirs(avatar_dir, exist_ok=True)
+                    fname = f"avatar_{session['user_id']}_{uuid.uuid4().hex[:6]}.{ext}"
+                    filepath = os.path.join(avatar_dir, fname)
+                    file.save(filepath)
+                    avatar_url = f"/static/uploads/avatars/{fname}"
+                except Exception:
+                    import base64
+                    file.seek(0)
+                    b64_img = base64.b64encode(file.read()).decode('utf-8')
+                    avatar_url = f"data:image/{ext};base64,{b64_img}"
                 session['profile_photo'] = avatar_url
             else:
                 flash('Please upload an image file (PNG, JPG, JPEG, WEBP).', 'error')
@@ -1287,7 +1322,7 @@ def forgot_password():
 def reset_password(token):
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
-        token_record = conn.execute('SELECT * FROM verification_tokens WHERE token = ? AND type = "password_reset"', (token,)).fetchone()
+        token_record = conn.execute("SELECT * FROM verification_tokens WHERE token = ? AND type = 'password_reset'", (token,)).fetchone()
         
     if not token_record:
         flash('Invalid or expired reset link.', 'error')
@@ -1552,7 +1587,7 @@ def waiting_room(exam_id):
 def start_exam(exam_id):
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
-            'UPDATE exam_participants SET status = "active", started_at = CURRENT_TIMESTAMP WHERE exam_id = ? AND student_id = ? AND status = "waiting"',
+            "UPDATE exam_participants SET status = 'active', started_at = CURRENT_TIMESTAMP WHERE exam_id = ? AND student_id = ? AND status = 'waiting'",
             (exam_id, session['user_id'])
         )
     return redirect(url_for('take_exam', exam_id=exam_id))
@@ -1573,8 +1608,9 @@ def take_exam(exam_id):
     data = json.loads(exam['generated_data'])
     
     # Calculate time left
-    started_at = datetime.datetime.strptime(participant['started_at'], "%Y-%m-%d %H:%M:%S")
-    elapsed = (datetime.datetime.utcnow() - started_at).total_seconds()
+    started_at = parse_dt(participant['started_at']) or datetime.datetime.now()
+    now_ts = datetime.datetime.now(started_at.tzinfo) if started_at.tzinfo else datetime.datetime.now()
+    elapsed = (now_ts - started_at).total_seconds()
     time_left = max(0, (exam['duration_mins'] * 60) - elapsed)
     
     if time_left <= 0:
@@ -1586,7 +1622,7 @@ def take_exam(exam_id):
 @login_required
 def submit_exam(exam_id):
     with sqlite3.connect(DB_PATH) as conn:
-        conn.execute('UPDATE exam_participants SET status = "submitted", completed_at = CURRENT_TIMESTAMP WHERE exam_id = ? AND student_id = ?', (exam_id, session['user_id']))
+        conn.execute("UPDATE exam_participants SET status = 'submitted', completed_at = CURRENT_TIMESTAMP WHERE exam_id = ? AND student_id = ?", (exam_id, session['user_id']))
     flash('Exam submitted successfully!', 'success')
     return redirect(url_for('dashboard'))
     
@@ -1648,7 +1684,7 @@ def mock_test_setup():
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         history = conn.execute(
-            'SELECT id, subject, difficulty, total_questions, score, completed_at FROM mock_tests WHERE student_id = ? AND status = "completed" ORDER BY completed_at DESC LIMIT 10',
+            "SELECT id, subject, difficulty, total_questions, score, completed_at FROM mock_tests WHERE student_id = ? AND status = 'completed' ORDER BY completed_at DESC LIMIT 10",
             (session['user_id'],)
         ).fetchall()
     return render_template('mock_test_setup.html', history=history)
@@ -1666,7 +1702,7 @@ def mock_test_start():
     
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
-            'INSERT INTO mock_tests (id, student_id, subject, difficulty, duration_mins, total_questions, test_data, status) VALUES (?, ?, ?, ?, ?, ?, ?, "active")',
+            "INSERT INTO mock_tests (id, student_id, subject, difficulty, duration_mins, total_questions, test_data, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'active')",
             (mock_id, session['user_id'], subject, difficulty, duration_mins, len(questions), json.dumps(questions))
         )
         
@@ -1688,12 +1724,9 @@ def mock_test_take(mock_id):
         
     questions = json.loads(mock['test_data'])
     
-    raw_started = mock['started_at']
-    if isinstance(raw_started, datetime.datetime):
-        started_at = raw_started
-    else:
-        started_at = datetime.datetime.strptime(str(raw_started)[:19], "%Y-%m-%d %H:%M:%S")
-    elapsed = (datetime.datetime.now() - started_at).total_seconds()
+    started_at = parse_dt(mock['started_at']) or datetime.datetime.now()
+    now_ts = datetime.datetime.now(started_at.tzinfo) if started_at.tzinfo else datetime.datetime.now()
+    elapsed = (now_ts - started_at).total_seconds()
     time_left = max(0, (mock['duration_mins'] * 60) - int(elapsed))
     
     return render_template('mock_test_take.html', mock=mock, questions=questions, time_left=time_left)
@@ -1720,7 +1753,7 @@ def mock_test_submit(mock_id):
                 score += 1
                 
         conn.execute(
-            'UPDATE mock_tests SET score = ?, user_responses = ?, status = "completed", completed_at = CURRENT_TIMESTAMP WHERE id = ?',
+            "UPDATE mock_tests SET score = ?, user_responses = ?, status = 'completed', completed_at = CURRENT_TIMESTAMP WHERE id = ?",
             (score, json.dumps(answers), mock_id)
         )
         
@@ -1879,6 +1912,7 @@ def teacher_dashboard():
         avg_platform_score=avg_platform_score
     )
 
+@app.route('/teacher/test/create', endpoint='create_test')
 @app.route('/teacher/test/create', endpoint='create_test_page')
 @app.route('/teacher/test/create', endpoint='teacher_create_test')
 @login_required
@@ -2253,7 +2287,7 @@ def teacher_stop_test(test_id):
 
         # Finalize and grade all in-progress student attempts
         in_progress_attempts = conn.execute(
-            'SELECT * FROM test_attempts WHERE test_id = ? AND status = "in_progress"',
+            "SELECT * FROM test_attempts WHERE test_id = ? AND status = 'in_progress'",
             (test['id'],)
         ).fetchall()
 
@@ -2305,7 +2339,7 @@ def teacher_toggle_status(test_id):
 
             if new_status == 0:
                 in_progress_attempts = conn.execute(
-                    'SELECT * FROM test_attempts WHERE test_id = ? AND status = "in_progress"',
+                    "SELECT * FROM test_attempts WHERE test_id = ? AND status = 'in_progress'",
                     (test['id'],)
                 ).fetchall()
                 questions = json.loads(test['questions_data'] or '[]')

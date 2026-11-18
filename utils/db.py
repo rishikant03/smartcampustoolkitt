@@ -248,6 +248,9 @@ def connect(*args, **kwargs):
             if "localhost" not in cleaned_url and "127.0.0.1" not in cleaned_url and "sslmode=" not in cleaned_url:
                 separator = "&" if "?" in cleaned_url else "?"
                 cleaned_url += f"{separator}sslmode=require"
+            if "connect_timeout=" not in cleaned_url:
+                separator = "&" if "?" in cleaned_url else "?"
+                cleaned_url += f"{separator}connect_timeout=5"
             return PgConnection(cleaned_url)
         except Exception as e:
             print(f"[Database Warning] PostgreSQL connection failed ({e}). Falling back to SQLite.", flush=True)

@@ -9,6 +9,7 @@ if ROOT_DIR not in sys.path:
 
 try:
     from app import app
+    application = app
 except Exception as e:
     error_trace = traceback.format_exc()
     def app(environ, start_response):
@@ -16,3 +17,4 @@ except Exception as e:
         headers = [('Content-type', 'text/plain; charset=utf-8')]
         start_response(status, headers)
         return [f"App failed to start. Error:\n\n{error_trace}".encode('utf-8')]
+    application = app
