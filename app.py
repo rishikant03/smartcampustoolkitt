@@ -359,6 +359,15 @@ def init_db():
                 FOREIGN KEY (teacher_id) REFERENCES users (id)
             )
         ''')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS uploaded_documents (
+                id TEXT PRIMARY KEY,
+                filename TEXT NOT NULL,
+                text_content TEXT NOT NULL,
+                user_id INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
         
         # Ensure column migrations for papers and user_profiles
         try:
@@ -1378,6 +1387,32 @@ def index():
 def resume_builder():
     return render_template('resume_builder.html')
 
+@app.route('/upload-text', methods=['POST'])
+@verified_required
+def upload_text():
+    data = request.get_json(silent=True) or {}
+    filename = data.get('filename', '').strip() or 'document.pdf'
+    text = data.get('text', '').strip()
+    
+    if not text:
+        return jsonify({'success': False, 'error': 'No readable text content found in document'}), 400
+        
+    doc_id = str(uuid.uuid4())
+    clean_name = secure_filename(filename) or f"paper_{doc_id[:8]}.pdf"
+    
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            'INSERT INTO uploaded_documents (id, filename, text_content, user_id) VALUES (?, ?, ?, ?)',
+            (doc_id, clean_name, text, session.get('user_id'))
+        )
+        
+    return jsonify({
+        'success': True,
+        'doc_id': doc_id,
+        'filename': clean_name,
+        'redirect_url': url_for('settings', filename=doc_id)
+    })
+
 @app.route('/upload', methods=['POST'])
 @verified_required
 def upload_file():
@@ -1397,12 +1432,21 @@ def upload_file():
         file.save(filepath)
         
         try:
-            # Test extraction immediately
-            extract_text_from_pdf(filepath)
-            return redirect(url_for('settings', filename=clean_name))
+            # Extract text immediately and persist to database to survive serverless restarts
+            text = extract_text_from_pdf(filepath)
+            doc_id = str(uuid.uuid4())
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.execute(
+                    'INSERT INTO uploaded_documents (id, filename, text_content, user_id) VALUES (?, ?, ?, ?)',
+                    (doc_id, clean_name, text, session.get('user_id'))
+                )
+            return redirect(url_for('settings', filename=doc_id))
         except Exception as e:
             if os.path.exists(filepath):
-                os.remove(filepath)
+                try:
+                    os.remove(filepath)
+                except Exception:
+                    pass
             flash(str(e), 'error')
             return redirect(url_for('index'))
     
@@ -1412,7 +1456,18 @@ def upload_file():
 @app.route('/settings/<filename>')
 @verified_required
 def settings(filename):
-    return render_template('settings.html', filename=filename)
+    display_name = filename
+    doc_id = filename
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            doc = conn.execute('SELECT * FROM uploaded_documents WHERE id = ?', (filename,)).fetchone()
+            if doc:
+                display_name = doc['filename']
+                doc_id = doc['id']
+    except Exception:
+        pass
+    return render_template('settings.html', filename=display_name, doc_id=doc_id)
 
 @app.route('/generate', methods=['POST'])
 @verified_required
@@ -1422,15 +1477,37 @@ def generate():
     else:
         req_data = request.form
 
-    filename = req_data.get('filename')
-    if not filename:
-        return jsonify({"error": "No filename provided"}), 400
+    file_id = req_data.get('filename') or req_data.get('doc_id')
+    if not file_id:
+        return jsonify({"error": "No document identifier provided"}), 400
     
-    filename = secure_filename(filename)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    pdf_text = None
+    display_name = file_id
     
-    if not os.path.exists(filepath):
-        return jsonify({"error": f"File '{filename}' not found on server"}), 404
+    # 1. First look up the document in uploaded_documents table
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            doc = conn.execute('SELECT * FROM uploaded_documents WHERE id = ?', (file_id,)).fetchone()
+            if doc:
+                pdf_text = doc['text_content']
+                display_name = doc['filename']
+    except Exception as e:
+        print(f"DB lookup exception: {e}")
+        
+    # 2. Fallback to filesystem if not found in DB
+    if not pdf_text:
+        clean_name = secure_filename(file_id)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], clean_name)
+        if os.path.exists(filepath):
+            try:
+                pdf_text = extract_text_from_pdf(filepath)
+                display_name = clean_name
+            except Exception as e:
+                return jsonify({"error": f"Failed to extract text from PDF: {str(e)}"}), 400
+                
+    if not pdf_text:
+        return jsonify({"error": "Document content not found or session expired. Please re-upload your PDF."}), 404
         
     settings = {
         'subject': req_data.get('subject') or 'General',
@@ -1446,7 +1523,6 @@ def generate():
     }
     
     try:
-        pdf_text = extract_text_from_pdf(filepath)
         generated_data = generate_questions(pdf_text, settings)
         
         paper_id = str(uuid.uuid4())
@@ -1457,12 +1533,12 @@ def generate():
             try:
                 conn.execute(
                     'INSERT INTO papers (id, filename, settings, generated_data, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-                    (paper_id, filename, json.dumps(settings), json.dumps(generated_data), user_id, now_str)
+                    (paper_id, display_name, json.dumps(settings), json.dumps(generated_data), user_id, now_str)
                 )
             except Exception:
                 conn.execute(
                     'INSERT INTO papers (id, filename, settings, generated_data) VALUES (?, ?, ?, ?)',
-                    (paper_id, filename, json.dumps(settings), json.dumps(generated_data))
+                    (paper_id, display_name, json.dumps(settings), json.dumps(generated_data))
                 )
             
         return jsonify({"success": True, "paper_id": paper_id})
@@ -1957,30 +2033,50 @@ def teacher_create_test():
                 })
             except Exception:
                 pass
-    return render_template('create_test.html', available_papers=available_papers)
+    return render_template('create_test.html', available_papers=available_papers, papers=available_papers)
 
 @app.route('/teacher/test/create-submit', methods=['POST'])
 @login_required
 @teacher_required
 def teacher_create_test_submit():
+    raw_mode = (request.form.get('source_type') or request.form.get('creation_mode') or 'book').lower()
+    if 'bank' in raw_mode:
+        source_type = 'question_bank'
+    elif 'manual' in raw_mode:
+        source_type = 'manual'
+    else:
+        source_type = 'book_pdf'
+
     title = request.form.get('title', '').strip()
     subject = request.form.get('subject', '').strip()
-    source_type = request.form.get('source_type', 'book_pdf')
-    duration_minutes = int(request.form.get('duration_minutes', 30))
-    negative_marking = float(request.form.get('negative_marking', 0.0))
+    duration_minutes = int(request.form.get('duration_minutes') or request.form.get('duration_mins') or 30)
+    negative_marking = float(request.form.get('negative_marking', 0.0) or 0.0)
     allow_calculator = 1 if request.form.get('allow_calculator') else 0
-    max_warnings = int(request.form.get('max_warnings', 3))
+    max_warnings = int(request.form.get('max_warnings', 3) or 3)
     shuffle_questions = 1 if request.form.get('shuffle_questions') else 0
 
-    if not title or not subject:
-        flash('Test title and subject are required.', 'error')
-        return redirect(url_for('teacher_create_test'))
+    paper_id = request.form.get('paper_id')
+    if source_type == 'question_bank' and not subject and paper_id:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            paper = conn.execute('SELECT * FROM papers WHERE id = ?', (paper_id,)).fetchone()
+            if paper:
+                try:
+                    s_data = json.loads(paper['settings'] or '{}')
+                    subject = s_data.get('subject') or paper['filename'] or 'General Subject'
+                except Exception:
+                    subject = paper['filename'] or 'General Subject'
+
+    if not subject:
+        subject = 'General Subject'
+    if not title:
+        title = f"{subject} Online Examination"
 
     questions = []
 
     if source_type == 'book_pdf':
-        pdf_text = ""
-        if 'book_pdf' in request.files and request.files['book_pdf'].filename != '':
+        pdf_text = request.form.get('extracted_pdf_text') or ""
+        if not pdf_text and 'book_pdf' in request.files and request.files['book_pdf'].filename != '':
             pdf_file = request.files['book_pdf']
             filename = secure_filename(pdf_file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -1990,18 +2086,26 @@ def teacher_create_test_submit():
             except Exception:
                 pdf_text = ""
         
-        q_count = int(request.form.get('ai_question_count', 10))
-        difficulty = request.form.get('ai_difficulty', 'medium')
+        mcq_count = int(request.form.get('mcq_count', 5) or 5)
+        tf_count = int(request.form.get('tf_count', 2) or 2)
+        short_count = int(request.form.get('short_count', 2) or 2)
+        numerical_count = int(request.form.get('numerical_count', 1) or 1)
+        difficulty = request.form.get('ai_difficulty') or request.form.get('difficulty') or 'medium'
+        chapter_focus = request.form.get('chapter_focus') or subject
         config = {
             'subject': subject,
-            'topic': request.form.get('chapter_focus', ''),
-            'count': q_count,
-            'difficulty': difficulty
+            'topic': chapter_focus,
+            'chapters': [chapter_focus],
+            'difficulty': difficulty,
+            'mcq_count': mcq_count,
+            'tf_count': tf_count,
+            'short_count': short_count,
+            'numerical_count': numerical_count,
+            'count': mcq_count + tf_count + short_count + numerical_count
         }
         questions = generate_exam_questions_from_book(pdf_text, config)
 
     elif source_type == 'question_bank':
-        paper_id = request.form.get('paper_id')
         if paper_id:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.row_factory = sqlite3.Row
@@ -2036,16 +2140,17 @@ def teacher_create_test_submit():
         except Exception:
             pass
         if not questions:
-            flash('Please add at least one question in the manual test builder.', 'error')
-            return redirect(url_for('teacher_create_test'))
+            questions = get_mock_questions(subject, 'medium', 5)
 
-    # Security Credentials Generation
+    if not questions:
+        questions = get_mock_questions(subject, 'medium', 10)
+
     test_code = generate_test_code()
     password = generate_test_password(subject)
     total_marks = sum(float(q.get('marks', 1)) for q in questions)
 
     with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.execute('''
+        conn.execute('''
             INSERT INTO tests (
                 teacher_id, test_code, password, title, subject, source_type,
                 duration_minutes, negative_marking, allow_calculator, max_warnings,
@@ -2057,7 +2162,7 @@ def teacher_create_test_submit():
             shuffle_questions, json.dumps(questions), total_marks
         ))
 
-    flash(f"Test created successfully! Test ID: {test_code} | Access Password: {password}", 'success')
+    flash(f"🎉 Test created successfully! Test ID: {test_code} | Access Password: {password}", 'success')
     return redirect(url_for('teacher_dashboard'))
 
 @app.route('/teacher/test/monitor/<test_id>', endpoint='live_monitor_page')
@@ -2700,8 +2805,8 @@ def start_practice_test():
     difficulty = request.form.get('difficulty', 'medium')
     duration = int(request.form.get('duration_minutes', 15))
 
-    pdf_text = ""
-    if source_type == 'book' and 'book_pdf' in request.files and request.files['book_pdf'].filename != '':
+    pdf_text = request.form.get('extracted_pdf_text') or ""
+    if not pdf_text and source_type == 'book' and 'book_pdf' in request.files and request.files['book_pdf'].filename != '':
         f = request.files['book_pdf']
         filename = secure_filename(f.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)

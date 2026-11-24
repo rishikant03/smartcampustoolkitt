@@ -6,6 +6,12 @@
     <title>Create Online Test - Teacher Portal</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
     <style>
         body { background: #ffffff; color: #000000; }
         .creator-container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
@@ -140,15 +146,17 @@
     <!-- OPTION 1: FROM UPLOADED BOOK PDF (AI)      -->
     <!-- ========================================== -->
     <div id="method-book" class="method-section active">
-        <form action="{{ url_for('teacher_create_test_submit') }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ url_for('teacher_create_test_submit') }}" method="POST" enctype="multipart/form-data" id="bookTestForm">
+            <input type="hidden" name="source_type" value="book_pdf">
             <input type="hidden" name="creation_mode" value="book">
+            <input type="hidden" name="extracted_pdf_text" id="teacher_extracted_pdf_text">
             
             <div class="config-box">
                 <h3 style="margin-bottom: 15px; color: #f8fafc;">1. Upload Book PDF</h3>
                 <div class="form-group" style="margin-bottom: 20px;">
                     <label for="book_pdf" style="display: block; margin-bottom: 8px; color: var(--text-muted);">Select Textbook / Syllabus PDF</label>
-                    <input type="file" id="book_pdf" name="book_pdf" accept=".pdf" required style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px dashed var(--primary); border-radius: 12px; color: white;">
-                    <small style="color: var(--text-muted); display: block; margin-top: 6px;">AI will parse chapters, topics, and automatically synthesize exam questions.</small>
+                    <input type="file" id="book_pdf" name="book_pdf" accept=".pdf" required style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px dashed var(--primary); border-radius: 12px; color: white;" onchange="onTeacherPdfSelected(this)">
+                    <small id="teacher_pdf_status" style="color: var(--text-muted); display: block; margin-top: 6px;">AI will parse chapters, topics, and automatically synthesize exam questions.</small>
                 </div>
             </div>
 
@@ -231,7 +239,8 @@
     <!-- OPTION 2: FROM EXISTING QUESTION BANK      -->
     <!-- ========================================== -->
     <div id="method-bank" class="method-section">
-        <form action="{{ url_for('teacher_create_test_submit') }}" method="POST">
+        <form action="{{ url_for('teacher_create_test_submit') }}" method="POST" id="bankTestForm">
+            <input type="hidden" name="source_type" value="question_bank">
             <input type="hidden" name="creation_mode" value="bank">
             
             <div class="config-box">
@@ -289,6 +298,7 @@
     <!-- ========================================== -->
     <div id="method-manual" class="method-section">
         <form action="{{ url_for('teacher_create_test_submit') }}" method="POST" id="manualForm">
+            <input type="hidden" name="source_type" value="manual">
             <input type="hidden" name="creation_mode" value="manual">
             <input type="hidden" name="manual_questions_json" id="manualQuestionsJson">
 
@@ -450,6 +460,104 @@
 
         document.getElementById('manualQuestionsJson').value = JSON.stringify(collected);
         document.getElementById('manualForm').submit();
+    }
+
+    async function onTeacherPdfSelected(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const status = document.getElementById('teacher_pdf_status');
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+            status.textContent = `Selected: ${file.name} (${sizeMB} MB). Extracting text...`;
+            status.style.color = '#38bdf8';
+            if (window.pdfjsLib) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    let fullText = "";
+                    const maxPages = Math.min(pdf.numPages, 40);
+                    for (let i = 1; i <= maxPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        fullText += textContent.items.map(item => item.str).join(' ') + '\n';
+                    }
+                    if (fullText.trim().length > 30) {
+                        document.getElementById('teacher_extracted_pdf_text').value = fullText.trim();
+                        status.textContent = `✅ Selected: ${file.name} (${sizeMB} MB) - Text extracted ready!`;
+                        status.style.color = '#10b981';
+                        // Remove binary name attribute so huge file is never sent in request body
+                        input.removeAttribute('name');
+                    }
+                } catch (e) {
+                    console.error("PDF.js error:", e);
+                    status.textContent = `Selected: ${file.name} (${sizeMB} MB).`;
+                }
+            }
+        }
+    }
+
+    const bookTestForm = document.getElementById('bookTestForm');
+    if (bookTestForm) {
+        bookTestForm.addEventListener('submit', async function(e) {
+            const fileInput = document.getElementById('book_pdf');
+            const extractedTextEl = document.getElementById('teacher_extracted_pdf_text');
+            const status = document.getElementById('teacher_pdf_status');
+            
+            if (extractedTextEl.value && extractedTextEl.value.trim().length >= 30) {
+                if (fileInput) {
+                    fileInput.removeAttribute('name');
+                    fileInput.removeAttribute('required');
+                }
+                return;
+            }
+            
+            if (fileInput && fileInput.files && fileInput.files.length) {
+                e.preventDefault();
+                const file = fileInput.files[0];
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                
+                if (window.pdfjsLib) {
+                    if (status) {
+                        status.textContent = `⏳ Extracting text from ${file.name} (${sizeMB} MB)... Please wait.`;
+                        status.style.color = '#10b981';
+                    }
+                    try {
+                        const arrayBuffer = await file.arrayBuffer();
+                        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                        let fullText = "";
+                        const maxPages = Math.min(pdf.numPages, 40);
+                        for (let i = 1; i <= maxPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const textContent = await page.getTextContent();
+                            fullText += textContent.items.map(item => item.str).join(' ') + '\n';
+                        }
+                        if (fullText.trim().length > 30) {
+                            extractedTextEl.value = fullText.trim();
+                            fileInput.removeAttribute('name');
+                            fileInput.removeAttribute('required');
+                            bookTestForm.submit();
+                            return;
+                        } else {
+                            alert("⚠️ No selectable text found in this PDF (it might be an image scan). Please upload a text-based PDF or use Option 2 / 3.");
+                            return;
+                        }
+                    } catch (err) {
+                        console.error("Extraction error:", err);
+                        if (file.size > 4.5 * 1024 * 1024) {
+                            alert(`⚠️ File is ${sizeMB} MB, exceeding Vercel's 4.5 MB limit. Please use a smaller PDF.`);
+                            return;
+                        }
+                        bookTestForm.submit();
+                        return;
+                    }
+                } else {
+                    if (file.size > 4.5 * 1024 * 1024) {
+                        e.preventDefault();
+                        alert(`⚠️ File is ${sizeMB} MB, exceeding Vercel's 4.5 MB limit. Please use a smaller PDF.`);
+                        return;
+                    }
+                }
+            }
+        });
     }
 
     // Default 1 MCQ
