@@ -54,8 +54,26 @@ class VercelPathFix:
 
     def __call__(self, environ, start_response):
         path = environ.get('PATH_INFO', '')
+        query_string = environ.get('QUERY_STRING', '')
 
-        # 1. Strip serverless function entrypoint prefixes
+        # 1. Check if Vercel rewrite passed the route path via query parameter __path__
+        if '__path__=' in query_string:
+            import urllib.parse
+            parsed_qs = urllib.parse.parse_qs(query_string, keep_blank_values=True)
+            if '__path__' in parsed_qs:
+                target_path = parsed_qs.pop('__path__')[0]
+                if '?' in target_path:
+                    sub_path, sub_qs = target_path.split('?', 1)
+                    target_path = sub_path
+                    for k, vals in urllib.parse.parse_qs(sub_qs, keep_blank_values=True).items():
+                        parsed_qs.setdefault(k, []).extend(vals)
+                if target_path:
+                    while '//' in target_path:
+                        target_path = target_path.replace('//', '/')
+                    path = target_path
+                environ['QUERY_STRING'] = urllib.parse.urlencode(parsed_qs, doseq=True)
+
+        # 2. Strip serverless function entrypoint prefixes if still present
         for prefix in ['/api/index.py', '/api/index']:
             if path == prefix or path == prefix + '/':
                 path = '/'
@@ -64,7 +82,7 @@ class VercelPathFix:
                 path = path[len(prefix):]
                 break
 
-        # 2. If after stripping, path is empty or '/', check Vercel routing headers
+        # 3. Fallback to routing headers if path is empty or root
         if path == '/' or not path:
             matched = (
                 environ.get('HTTP_X_MATCHED_PATH') or
@@ -82,11 +100,11 @@ class VercelPathFix:
                     elif clean.startswith(prefix + '/'):
                         clean = clean[len(prefix):]
                         break
-                if clean:
+                if clean and clean != '/':
                     path = clean
 
         if not path or not path.startswith('/'):
-            path = '/' + path.lstrip('/')
+            path = '/' + (path or '').lstrip('/')
 
         environ['PATH_INFO'] = path
         return self.wsgi_app(environ, start_response)
@@ -344,21 +362,26 @@ def init_db():
         
         # Ensure column migrations for papers and user_profiles
         try:
-            conn.execute('ALTER TABLE papers ADD COLUMN user_id INTEGER')
-        except Exception:
-            pass
-        try:
-            conn.execute('ALTER TABLE papers ADD COLUMN created_at TIMESTAMP')
-        except Exception:
-            pass
-        try:
-            conn.execute('ALTER TABLE user_profiles ADD COLUMN bio TEXT')
-        except Exception:
-            pass
-        try:
-            conn.execute('ALTER TABLE user_profiles ADD COLUMN department TEXT')
-        except Exception:
-            pass
+            if hasattr(conn, 'conn') and getattr(sqlite3, 'HAS_PSYCOPG2', False) and isinstance(conn, getattr(sqlite3, 'PgConnection', object)):
+                conn.execute('ALTER TABLE papers ADD COLUMN IF NOT EXISTS user_id INTEGER')
+                conn.execute('ALTER TABLE papers ADD COLUMN IF NOT EXISTS created_at TIMESTAMP')
+                conn.execute('ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS bio TEXT')
+                conn.execute('ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS department TEXT')
+            else:
+                cols = [row[1] for row in conn.execute("PRAGMA table_info(papers)").fetchall()]
+                if 'user_id' not in cols:
+                    conn.execute('ALTER TABLE papers ADD COLUMN user_id INTEGER')
+                if 'created_at' not in cols:
+                    conn.execute('ALTER TABLE papers ADD COLUMN created_at TIMESTAMP')
+                prof_cols = [row[1] for row in conn.execute("PRAGMA table_info(user_profiles)").fetchall()]
+                if 'bio' not in prof_cols:
+                    conn.execute('ALTER TABLE user_profiles ADD COLUMN bio TEXT')
+                if 'department' not in prof_cols:
+                    conn.execute('ALTER TABLE user_profiles ADD COLUMN department TEXT')
+        except Exception as e:
+            if hasattr(conn, 'conn') and hasattr(conn.conn, 'rollback'):
+                conn.conn.rollback()
+            print(f"Migration note: {e}")
             
         # Ensure default student and teacher accounts always exist with working credentials
         try:
